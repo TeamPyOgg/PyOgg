@@ -1,0 +1,17 @@
+
+*.dll
+*.pyc
+test.py
+*.ogg
+openal/__init__.py
+openal/_al.py
+openal/_alc.py
+openal/_alut.py
+x64/openal/__init__.py
+x64/openal/_al.py
+x64/openal/_alc.py
+x64/openal/_alut.py
+x64/pyogg/__init__.py
+x64/pyogg/ogg.py
+x64/pyogg/opus.py
+x64/pyogg/vorbis.py
