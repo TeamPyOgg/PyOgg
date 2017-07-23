@@ -15,3 +15,8 @@ x64/pyogg/__init__.py
 x64/pyogg/ogg.py
 x64/pyogg/opus.py
 x64/pyogg/vorbis.py
+*.h
+*.opus
+opus_test.py
+test 2.py
+opus_test 2.py

@@ -6,7 +6,4 @@ It requires libogg.dll and at least either OGG OPUS' libraries (libopus, libopus
 
 All the functions, structures and datatypes are as in the C++ implementation, except for some that couldn't be translated.
 
-In addition to those, there is currently one extra function that takes care of reading OGG VORBIS files.
-It is called pyogg_ov_read and takes a OggVorbis_File, a buffer (in form of a bytes string), the size of read buffers (usually 32768), bigendianp, word, sgned 
-
-NOTE: I've just started developing this and there is no support for OGG OPUS yet.
+You can import the various functions from pyogg.ogg, pyogg.value and pyogg.opus, or use the predefined VorbisFile and OpusFile classes from pyogg.

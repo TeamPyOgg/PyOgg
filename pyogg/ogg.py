@@ -1,5 +1,5 @@
 import ctypes
-from ctypes import c_int, c_int8, c_int16, c_int32, c_int64, c_uint, c_uint8, c_uint16, c_uint32, c_uint64, c_float, c_long, c_ulong, c_char, c_char_p, c_ubyte, c_size_t, c_void_p, c_double, POINTER, pointer, cast
+from ctypes import c_int, c_int8, c_int16, c_int32, c_int64, c_uint, c_uint8, c_uint16, c_uint32, c_uint64, c_float, c_long, c_ulong, c_char, c_char_p, c_ubyte, c_longlong, c_ulonglong, c_size_t, c_void_p, c_double, POINTER, pointer, cast
 import ctypes.util
 import sys
 from traceback import print_exc as _print_exc
