@@ -627,7 +627,7 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     def ov_read_float(vf, pcm_channels, samples, bitstream):
         return libvorbisfile.ov_read_float(vf, pcm_channels, samples, bitstream)
 
-    filter = ctypes.CFUNCTYPE(None,
+    filter_ = ctypes.CFUNCTYPE(None,
                               c_float_p_p,
                               c_long,
                               c_long,
@@ -635,10 +635,10 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
 
     try:
         libvorbisfile.ov_read_filter.restype = c_long
-        libvorbisfile.ov_read_filter.argtypes = [vf_p, c_char_p, c_int, c_int, c_int, c_int, c_int_p, filter, c_void_p]
+        libvorbisfile.ov_read_filter.argtypes = [vf_p, c_char_p, c_int, c_int, c_int, c_int, c_int_p, filter_, c_void_p]
 
-        def ov_read_filter(vf, buffer, length, bigendianp, word, sgned, bitstream, filter, filter_param):
-            return libvorbisfile.ov_read_filter(vf, buffer, length, bigendianp, word, sgned, bitstream, filter, filter_param)
+        def ov_read_filter(vf, buffer, length, bigendianp, word, sgned, bitstream, filter_, filter_param):
+            return libvorbisfile.ov_read_filter(vf, buffer, length, bigendianp, word, sgned, bitstream, filter_, filter_param)
     except:
         pass
 
@@ -647,21 +647,6 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
 
     def ov_read(vf, buffer, length, bigendianp, word, sgned, bitstream):
         return libvorbisfile.ov_read(vf, buffer, length, bigendianp, word, sgned, bitstream)
-
-    def pyogg_ov_read(vf, buffer, array_length, bigendianp, word, sgned): # returns bytes, bitstream, buffer
-        array = (c_char*array_length)()
-        array = cast(pointer(array), c_char_p)
-        bitstream = c_int()
-        bitstream_pointer = pointer(bitstream)
-        result = libvorbisfile.ov_read(vf, array, array_length, bigendianp, word, sgned, bitstream_pointer)
-        array = cast(array, POINTER(c_char*array_length)).contents
-        if not result:
-            return result, bitstream, buffer
-        if buffer:
-            buffer += array.raw[:result]
-        else:
-            buffer = array.raw[:result]
-        return result, bitstream, buffer
 
     libvorbisfile.ov_crosslap.restype = c_int
     libvorbisfile.ov_crosslap.argtypes = [vf_p, vf_p]

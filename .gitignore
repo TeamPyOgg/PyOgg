@@ -20,3 +20,4 @@ x64/pyogg/vorbis.py
 opus_test.py
 test 2.py
 opus_test 2.py
+stream_test.py
