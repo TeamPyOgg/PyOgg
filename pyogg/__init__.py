@@ -20,6 +20,8 @@ PYOGG_STREAM_BUFFER_SIZE = 8192
 class VorbisFile:
     def __init__(self, path):
         error, vf = vorbis.ov_fopen(path)
+        if error != 0:
+            raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
         info = vorbis.ov_info(vf, -1)
 
         self.channels = info.contents.channels
@@ -65,6 +67,9 @@ class VorbisFile:
 class VorbisFileStream:
     def __init__(self, path):
         error, self.vf = vorbis.ov_fopen(path)
+        if error != 0:
+            raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
+                       
         info = vorbis.ov_info(self.vf, -1)
 
         self.channels = info.contents.channels
@@ -126,6 +131,9 @@ class OpusFile:
 
         of = opus.op_open_file(ogg.to_char_p(path), ctypes.pointer(error))
 
+        if error.value != 0:
+            raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
+
         self.channels = opus.op_channel_count(of, -1)
 
         pcm_size = opus.op_pcm_total(of, -1)
@@ -160,6 +168,9 @@ class OpusFileStream:
         error = ctypes.c_int()
 
         self.of = opus.op_open_file(ogg.to_char_p(path), ctypes.pointer(error))
+
+        if error.value != 0:
+            raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
 
         self.channels = opus.op_channel_count(self.of, -1)
 
