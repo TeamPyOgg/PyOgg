@@ -11,6 +11,8 @@ Please refer to the official documentation and the C++ headers.
 
 You can import the various functions from pyogg.ogg, pyogg.vorbis and pyogg.opus or use the predefined classes and functions from pyogg.
 
+PyOgg is not capable of playing files, however, you can use OpenAL for normal or even 3D playback with [PyOpenAL](https://github.com/Zuzu-Typ/PyOpenAL).
+
 Here's a reference for PyOgg's own classes and functions:
 
 	<class> pyogg.VorbisFile(path)
