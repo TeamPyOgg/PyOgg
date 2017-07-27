@@ -21,3 +21,27 @@ opus_test.py
 test 2.py
 opus_test 2.py
 stream_test.py
+pypi/.pypirc
+pypi/build/lib/pyogg/__init__.py
+pypi/build/lib/pyogg/ogg.py
+pypi/build/lib/pyogg/opus.py
+pypi/build/lib/pyogg/vorbis.py
+*.whl
+*.gz
+pypi/LICENSE.txt
+pypi/PyOgg.egg-info/dependency_links.txt
+pypi/PyOgg.egg-info/PKG-INFO
+pypi/PyOgg.egg-info/SOURCES.txt
+pypi/PyOgg.egg-info/top_level.txt
+pypi/pyogg/__init__.py
+pypi/pyogg/ogg.py
+pypi/pyogg/opus.py
+pypi/pyogg/vorbis.py
+pypi/README.rst
+pypi/setup.bat
+pypi/setup.cfg
+pypi/setup.py
+pypi/upload.bat
+LICENSE.txt
+setup.cfg
+setup.py
