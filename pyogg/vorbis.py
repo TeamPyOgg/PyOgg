@@ -30,8 +30,6 @@ else:
 from .ogg import *
 
 if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
-    pass
-
     # codecs
     class vorbis_info(ctypes.Structure):
         """
