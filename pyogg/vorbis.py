@@ -10,8 +10,33 @@ __MINGW32__ = False
 _WIN32 = False
 
 try:
-    libvorbis = ctypes.CDLL("libvorbis.dll")
-    libvorbisfile = ctypes.CDLL("libvorbisfile.dll")
+    here = os.getcwd()
+    local_files = os.listdir(here)
+    lib_path = None
+    for file_name in local_files:
+        if os.path.splitext(file_name)[1] in (".lib", ".a", ".so", ".la", ".dll") and "vorbis" in file_name and not "vorbisfile" in file_name:
+            lib_path = os.path.join(here, file_name)
+            
+    if not lib_path:
+        lib_path = ctypes.util.find_library('vorbis')
+        
+    if lib_path is None:
+        raise ImportError('Vorbis shared library not found')
+
+    libvorbis = ctypes.CDLL(lib_path)
+    
+    lib_path = None
+    for file_name in local_files:
+        if os.path.splitext(file_name)[1] in (".lib", ".a", ".so", ".la", ".dll") and "vorbisfile" in file_name:
+            lib_path = os.path.join(here, file_name)
+
+    if not lib_path:
+        lib_path = ctypes.util.find_library('vorbisfile')
+        
+    if lib_path is None:
+        raise ImportError('VorbisFile shared library not found')
+
+    libvorbisfile = ctypes.CDLL(lib_path)
 except:
     _print_exc()
     libvorbis = None
