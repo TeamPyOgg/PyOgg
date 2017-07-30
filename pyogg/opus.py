@@ -4,8 +4,17 @@ import ctypes.util
 from .ogg import *
 
 try:
-    libopus = ctypes.CDLL("libopus.dll")
-    libopusfile = ctypes.CDLL("libopusfile.dll")
+    lib_path = ctypes.util.find_library('opus')
+    if lib_path is None:
+        raise ImportError('Opus shared library not found')
+
+    libopus = ctypes.CDLL(lib_path)
+
+    lib_path = ctypes.util.find_library('opusfile')
+    if lib_path is None:
+        raise ImportError('OpusFile shared library not found')
+
+    libopusfile = ctypes.CDLL(lib_path)
 except:
     libopus = None
     libopusfile = None

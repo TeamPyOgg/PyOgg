@@ -9,7 +9,11 @@ class PyOggError(Exception):
     pass
 
 try:
-    libogg = ctypes.CDLL("libogg.dll")
+    lib_path = ctypes.util.find_library('ogg')
+
+    if lib_path is None:
+        raise ImportError('OGG shared library not found')
+    libogg = ctypes.CDLL(lib_path)
 except:
     _print_exc()
     libogg = None
