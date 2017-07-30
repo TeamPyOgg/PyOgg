@@ -45,3 +45,4 @@ pypi/upload.bat
 LICENSE.txt
 setup.cfg
 setup.py
+test 3.py

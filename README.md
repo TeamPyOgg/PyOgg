@@ -2,8 +2,7 @@
 
 PyOgg provides bindings for Xiph.org's OGG Vorbis and OGG Opus audio file formats.
 
-It requires libogg.dll and at least either OGG Opus' libraries (libopus.dll, libopusfile.dll) and / or OGG Vorbis' libraries (libvorbis.dll, libvorbisfile.dll) to support Opus and Vorbis respectively.
-(PyOgg is technically cross-platform, but it currently only searches for Windows .DLL files)
+It requires the OGG library (e.g. libogg.dll) and at least either OGG Opus' libraries (e.g. libopus.dll, libopusfile.dll) and / or OGG Vorbis' libraries (e.g. libvorbis.dll, libvorbisfile.dll) to support Opus and Vorbis respectively.
 
 You can install PyOgg using PyPI.
 	

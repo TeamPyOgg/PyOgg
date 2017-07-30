@@ -13,7 +13,7 @@ try:
     local_files = os.listdir(here)
     lib_path = None
     for file_name in local_files:
-        if os.path.splitext(file_name)[1] in (".lib", ".a", ".so", ".la", ".dll") and "ogg" in file_name:
+        if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and "ogg" in file_name.lower():
             lib_path = os.path.join(here, file_name)
             
     if not lib_path:        
