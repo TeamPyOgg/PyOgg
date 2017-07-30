@@ -191,8 +191,8 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     libopus.opus_encoder_ctl.restype = c_int
     libopus.opus_encoder_ctl.argtypes = [oe_p, c_int]
 
-    def opus_encoder_ctl(st, request):
-        return libopus.opus_encoder_ctl(st, request)
+    def opus_encoder_ctl(st, request, *args):
+        return libopus.opus_encoder_ctl(st, request, *args)
 
     class OpusDecoder(ctypes.Structure):
         _fields_ = [("dummy", c_int)]
@@ -232,8 +232,8 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     libopus.opus_decoder_ctl.restype = c_int
     libopus.opus_decoder_ctl.argtypes = [od_p, c_int]
 
-    def opus_decoder_ctl(st, request):
-        return libopus.opus_decoder_ctl(st, request)
+    def opus_decoder_ctl(st, request, *args):
+        return libopus.opus_decoder_ctl(st, request, *args)
 
     libopus.opus_decoder_destroy.restype = None
     libopus.opus_decoder_destroy.argtypes = [od_p]
@@ -438,8 +438,8 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     libopus.opus_multistream_encoder_ctl.restype = c_int
     libopus.opus_multistream_encoder_ctl.argtypes = [omse_p, c_int]
 
-    def opus_multistream_encoder_ctl(st, request):
-        return libopus.opus_multistream_encoder_ctl(st, request)
+    def opus_multistream_encoder_ctl(st, request, *args):
+        return libopus.opus_multistream_encoder_ctl(st, request, *args)
 
     libopus.opus_multistream_decoder_get_size.restype = opus_int32
     libopus.opus_multistream_decoder_get_size.argtypes = [c_int, c_int]
@@ -474,8 +474,8 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     libopus.opus_multistream_decoder_ctl.restype = c_int
     libopus.opus_multistream_decoder_ctl.argtypes = [omsd_p, c_int]
 
-    def opus_multistream_decoder_ctl(st, request):
-        return libopus.opus_multistream_decoder_ctl(st, request)
+    def opus_multistream_decoder_ctl(st, request, *args):
+        return libopus.opus_multistream_decoder_ctl(st, request, *args)
 
     libopus.opus_multistream_decoder_destroy.restype = None
     libopus.opus_multistream_decoder_destroy.argtypes = [omsd_p]
