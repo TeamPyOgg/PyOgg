@@ -1,39 +1,57 @@
 import ctypes
 import ctypes.util
+import os
 
 from .ogg import *
 
-try:
-    here = os.getcwd()
-    local_files = os.listdir(here)
-    lib_path = None
-    for file_name in local_files:
-        if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and "opus" in file_name.lower() and not "opusfile" in file_name.lower():
-            lib_path = os.path.join(here, file_name)
+here = os.getcwd()
+local_files = os.listdir(here)
+
+# libopus
+lib_path = None
+for file_name in local_files:
+    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopus", "opus"]:
+        lib_path = os.path.join(here, file_name)
+
+if not lib_path:
+    lib_path = ctypes.util.find_library('opus')
     
-    if not lib_path:
-        lib_path = ctypes.util.find_library('opus')
-        
-    if lib_path is None:
-        raise ImportError('Opus shared library not found')
-
-    libopus = ctypes.CDLL(lib_path)
-        
-    lib_path = None
-    for file_name in local_files:
-        if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and "opusfile" in file_name.lower():
-            lib_path = os.path.join(here, file_name)
-            
-    if not lib_path:
-        lib_path = ctypes.util.find_library('opusfile')
-        
-    if lib_path is None:
-        raise ImportError('OpusFile shared library not found')
-
-    libopusfile = ctypes.CDLL(lib_path)
-except:
+if lib_path is None:
     libopus = None
+else:
+    libopus = ctypes.CDLL(lib_path)
+# /libopus
+
+# libopusfile
+lib_path = None
+for file_name in local_files:
+    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopusfile", "opusfile"]:
+        lib_path = os.path.join(here, file_name)
+        
+if not lib_path:
+    lib_path = ctypes.util.find_library('opusfile')
+    
+if lib_path is None:
     libopusfile = None
+else:
+    libopusfile = ctypes.CDLL(lib_path)
+# /libopusfile
+    
+
+# libopusenc
+lib_path = None
+for file_name in local_files:
+    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopusenc", "opusenc"]:
+        lib_path = os.path.join(here, file_name)
+
+if not lib_path:
+    lib_path = ctypes.util.find_library('opusenc')
+    
+if lib_path is None:
+    libopusenc = None
+else:
+    libopusenc = ctypes.CDLL(lib_path)
+# /libopusenc
 
 if not libopus:
     PYOGG_OPUS_AVAIL = False
@@ -45,27 +63,27 @@ if not libopusfile:
 else:
     PYOGG_OPUS_FILE_AVAIL = True
 
+if not libopusenc:
+    PYOGG_OPUS_ENC_AVAIL = False
+else:
+    PYOGG_OPUS_ENC_AVAIL = True
+
 if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
+    # all definitions
+    OPE_API_VERSION =0
 
-    # opus_types
+    OPE_OK =0
+    OPE_BAD_ARG =-11
+    OPE_INTERNAL_ERROR =-13
+    OPE_UNIMPLEMENTED =-15
+    OPE_ALLOC_FAIL =-17
+        
+    OPE_CANNOT_OPEN =-30
+    OPE_TOO_LATE =-31
+    OPE_UNRECOVERABLE =-32
+    OPE_INVALID_PICTURE =-33
+    OPE_INVALID_ICON =-34
 
-    opus_int16 = c_int16
-    opus_int16_p = POINTER(c_int16)
-    opus_uint16 = c_uint16
-    opus_int32 = c_int32
-    opus_uint32 = c_uint32
-
-    opus_int  =  c_int  
-    opus_int64=  c_longlong
-    opus_int8=    c_int8
-
-    opus_uint= c_uint
-    opus_uint64 = c_ulonglong
-    opus_uint8 = c_int8
-
-    # /opus_types
-
-    # opus_defines
     OPUS_OK                =0
     OPUS_BAD_ARG          =-1
     OPUS_BUFFER_TOO_SMALL =-2
@@ -74,6 +92,31 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     OPUS_UNIMPLEMENTED    =-5
     OPUS_INVALID_STATE    =-6
     OPUS_ALLOC_FAIL       =-7
+
+    OP_FALSE         =(-1)
+    OP_EOF           =(-2)
+    OP_HOLE          =(-3)
+    OP_EREAD         =(-128)
+    OP_EFAULT        =(-129)
+    OP_EIMPL         =(-130)
+    OP_EINVAL        =(-131)
+    OP_ENOTFORMAT    =(-132)
+    OP_EBADHEADER    =(-133)
+    OP_EVERSION      =(-134)
+    OP_ENOTAUDIO     =(-135)
+    OP_EBADPACKET    =(-136)
+    OP_EBADLINK      =(-137)
+    OP_ENOSEEK       =(-138)
+    OP_EBADTIMESTAMP =(-139)
+
+    OP_PIC_FORMAT_UNKNOWN =(-1)
+    OP_PIC_FORMAT_URL     =(0)
+    OP_PIC_FORMAT_JPEG    =(1)
+    OP_PIC_FORMAT_PNG     =(2)
+    OP_PIC_FORMAT_GIF     =(3)
+
+
+    OPUS_CHANNEL_COUNT_MAX =(255)
 
     OPUS_SET_APPLICATION_REQUEST         =4000
     OPUS_GET_APPLICATION_REQUEST         =4001
@@ -115,6 +158,8 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     OPUS_SET_PHASE_INVERSION_DISABLED_REQUEST =4046
     OPUS_GET_PHASE_INVERSION_DISABLED_REQUEST =4047
 
+    
+
     OPUS_AUTO                           =-1000
     OPUS_BITRATE_MAX                     =  -1
 
@@ -141,9 +186,56 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     OPUS_FRAMESIZE_100_MS                =5008 
     OPUS_FRAMESIZE_120_MS                =5009
 
+    OPUS_MULTISTREAM_GET_ENCODER_STATE_REQUEST =5120
+    OPUS_MULTISTREAM_GET_DECODER_STATE_REQUEST =5122
+
+    OP_SSL_SKIP_CERTIFICATE_CHECK_REQUEST =(6464)
+    OP_HTTP_PROXY_HOST_REQUEST            =(6528)
+    OP_HTTP_PROXY_PORT_REQUEST            =(6592)
+    OP_HTTP_PROXY_USER_REQUEST            =(6656)
+    OP_HTTP_PROXY_PASS_REQUEST            =(6720)
+    OP_GET_SERVER_INFO_REQUEST            =(6784)
+
+    OP_DEC_FORMAT_SHORT =(7008)
+    OP_DEC_FORMAT_FLOAT =(7040)
+    OP_DEC_USE_DEFAULT  =(6720)
+
+    OP_HEADER_GAIN   =(0)
+    OP_ALBUM_GAIN    =(3007)
+    OP_TRACK_GAIN    =(3008)
+    OP_ABSOLUTE_GAIN =(3009)
+
     OPUS_RESET_STATE =4028
-      
-    # /opus_defines
+
+    OPE_SET_DECISION_DELAY_REQUEST      =14000
+    OPE_GET_DECISION_DELAY_REQUEST      =14001
+    OPE_SET_MUXING_DELAY_REQUEST        =14002
+    OPE_GET_MUXING_DELAY_REQUEST        =14003
+    OPE_SET_COMMENT_PADDING_REQUEST     =14004
+    OPE_GET_COMMENT_PADDING_REQUEST     =14005
+    OPE_SET_SERIALNO_REQUEST            =14006
+    OPE_GET_SERIALNO_REQUEST            =14007
+    OPE_SET_PACKET_CALLBACK_REQUEST     =14008
+    OPE_SET_HEADER_GAIN_REQUEST         =14010
+    OPE_GET_HEADER_GAIN_REQUEST         =14011
+
+    # opus_types
+
+    opus_int16 = c_int16
+    opus_int16_p = POINTER(c_int16)
+    opus_uint16 = c_uint16
+    opus_int32 = c_int32
+    opus_uint32 = c_uint32
+
+    opus_int  =  c_int  
+    opus_int64=  c_longlong
+    opus_int8=    c_int8
+
+    opus_uint= c_uint
+    opus_uint64 = c_ulonglong
+    opus_uint8 = c_int8
+
+    # /opus_types
 
     # opus
 
@@ -369,10 +461,6 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     # /opus
 
     # opus_multistream
-
-    OPUS_MULTISTREAM_GET_ENCODER_STATE_REQUEST =5120
-    OPUS_MULTISTREAM_GET_DECODER_STATE_REQUEST =5122
-
     class OpusMSEncoder(ctypes.Structure):
         _fields_ = [("dummy", c_int)]
     omse_p = POINTER(OpusMSEncoder)
@@ -492,24 +580,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
 
     oof_p = POINTER(OggOpusFile)
 
-    OP_FALSE         =(-1)
-    OP_EOF           =(-2)
-    OP_HOLE          =(-3)
-    OP_EREAD         =(-128)
-    OP_EFAULT        =(-129)
-    OP_EIMPL         =(-130)
-    OP_EINVAL        =(-131)
-    OP_ENOTFORMAT    =(-132)
-    OP_EBADHEADER    =(-133)
-    OP_EVERSION      =(-134)
-    OP_ENOTAUDIO     =(-135)
-    OP_EBADPACKET    =(-136)
-    OP_EBADLINK      =(-137)
-    OP_ENOSEEK       =(-138)
-    OP_EBADTIMESTAMP =(-139)
-
-
-    OPUS_CHANNEL_COUNT_MAX =(255)
+    
 
     class OpusHead(ctypes.Structure):
         _fields_ = [("version", c_int),
@@ -532,11 +603,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
 
     ot_p = POINTER(OpusTags)
 
-    OP_PIC_FORMAT_UNKNOWN =(-1)
-    OP_PIC_FORMAT_URL     =(0)
-    OP_PIC_FORMAT_JPEG    =(1)
-    OP_PIC_FORMAT_PNG     =(2)
-    OP_PIC_FORMAT_GIF     =(3)
+    
 
     class OpusPictureTag(ctypes.Structure):
         _fields_ = [("type", opus_int32),
@@ -666,12 +733,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     def opus_picture_tag_clear(_pic):
         return libopusfile.opus_picture_tag_clear(_pic)
 
-    OP_SSL_SKIP_CERTIFICATE_CHECK_REQUEST =(6464)
-    OP_HTTP_PROXY_HOST_REQUEST            =(6528)
-    OP_HTTP_PROXY_PORT_REQUEST            =(6592)
-    OP_HTTP_PROXY_USER_REQUEST            =(6656)
-    OP_HTTP_PROXY_PASS_REQUEST            =(6720)
-    OP_GET_SERVER_INFO_REQUEST            =(6784)
+    
 
     class OpusServerInfo(ctypes.Structure):
         _fields_ = [("name", c_char_p),
@@ -892,9 +954,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     def op_pcm_seek(_of, _pcm_offset):
         return libopusfile.op_pcm_seek(_of, _pcm_offset)
 
-    OP_DEC_FORMAT_SHORT =(7008)
-    OP_DEC_FORMAT_FLOAT =(7040)
-    OP_DEC_USE_DEFAULT  =(6720)
+    
 
     op_decode_cb_func = ctypes.CFUNCTYPE(c_int,
                                          c_void_p,
@@ -912,10 +972,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     def op_set_decode_callback(_of, _decode_cb, _ctx):
         return libopusfile.op_set_decode_callback(_of, _decode_cb, _ctx)
 
-    OP_HEADER_GAIN   =(0)
-    OP_ALBUM_GAIN    =(3007)
-    OP_TRACK_GAIN    =(3008)
-    OP_ABSOLUTE_GAIN =(3009)
+    
 
     libopusfile.op_set_gain_offset.restype = c_int
     libopusfile.op_set_gain_offset.argtypes = [oof_p, c_int, opus_int32]
@@ -952,3 +1009,170 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
 
     def op_read_float_stereo(_of, _pcm, _buf_size):
         return libopusfile.op_read_float_stereo(_of, _pcm, _buf_size)
+
+
+    if PYOGG_OPUS_ENC_AVAIL:
+        ope_write_func = ctypes.CFUNCTYPE(c_int,
+                                          c_void_p,
+                                          c_uchar_p,
+                                          opus_int32)
+
+        ope_close_func = ctypes.CFUNCTYPE(c_int,
+                                          c_void_p)
+
+        ope_packet_func = ctypes.CFUNCTYPE(c_int,
+                                          c_void_p,
+                                          c_uchar_p,
+                                          opus_int32,
+                                          opus_uint32)
+
+
+        class OpusEncCallbacks(ctypes.Structure):
+            _fields_ = [("write", ope_write_func),
+                        ("close", ope_close_func)]
+
+        oec_p = POINTER(OpusEncCallbacks)
+
+        class OggOpusComments(ctypes.Structure):
+            _fields_ = [("dummy", c_int)]
+
+        ooc_p = POINTER(OggOpusComments)
+
+        class OggOpusEnc(ctypes.Structure):
+            _fields_ = [("dummy", c_int)]
+
+        ooe = POINTER(OggOpusEnc)
+
+        OggOpusComments *ope_comments_create(void);
+
+        libopusenc.ope_comments_create.restype = ooc_p
+        libopusenc.ope_comments_create.argtypes = None
+
+        def ope_comments_create():
+            return libopusenc.ope_comments_create()
+
+        libopusenc.ope_comments_copy.restype = ooc_p
+        libopusenc.ope_comments_copy.argtypes = [ooc_p]
+
+        def ope_comments_copy(comments):
+            return libopusenc.ope_comments_copy(comments)
+
+        libopusenc.ope_comments_destroy.restype = None
+        libopusenc.ope_comments_destroy.argtypes = [ooc_p]
+
+        def ope_comments_destroy(comments):
+            return libopusenc.ope_comments_destroy(comments)
+
+        libopusenc.ope_comments_add.restype = c_int
+        libopusenc.ope_comments_add.argtypes = [ooc_p, c_char_p, c_char_p]
+
+        def ope_comments_add(comments, tag, val):
+            return libopusenc.ope_comments_add(comments, tag, val)
+
+        libopusenc.ope_comments_add_string.restype = c_int
+        libopusenc.ope_comments_add_string.argtypes = [ooc_p, c_char_p]
+
+        def ope_comments_add_string(comments, tag_and_val):
+            return libopusenc.ope_comments_add_string(comments, tag_and_val)
+
+        libopusenc.ope_comments_add_picture.restype = c_int
+        libopusenc.ope_comments_add_picture.argtypes = [ooc_p, c_char_p, c_int, c_char_p]
+
+        def ope_comments_add_picture(comments, filename, picture_type, description):
+            return libopusenc.ope_comments_add_picture(comments, filename, picture_type, description)
+
+        libopusenc.ope_encoder_create_file.restype = ooe_p
+        libopusenc.ope_encoder_create_file.argtypes = [c_char_p, ooc_p, opus_int32, c_int, c_int, c_int_p]
+
+        def ope_encoder_create_file(path, comments, rate, channels, family, error):
+            return libopusenc.ope_encoder_create_file(path, comments, rate, channels, family, error)
+
+        libopusenc.ope_encoder_create_callbacks.restype = ooe_p
+        libopusenc.ope_encoder_create_callbacks.argtypes = [oec_p, c_void_p, ooc_p, opus_int32, c_int, c_int, c_int_p]
+
+        def ope_encoder_create_callbacks(callbacks, user_data, comments, rate, channels, family, error):
+            return libopusenc.ope_encoder_create_callbacks(callbacks, user_data, comments, rate, channels, family, error)
+
+        libopusenc.ope_encoder_create_pull.restype = ooe_p
+        libopusenc.ope_encoder_create_pull.argtypes = [ooc_p, opus_int32, c_int, c_int, c_int_p]
+
+        def ope_encoder_create_pull(comments, rate, channels, family, error):
+            return libopusenc.ope_encoder_create_pull(comments, rate, channels, family, error)
+
+        libopusenc.ope_encoder_write_float.restype = c_int
+        libopusenc.ope_encoder_write_float.argtypes = [ooe_p, c_float_p, c_int]
+
+        def ope_encoder_write_float(enc, pcm, samples_per_channel):
+            return libopusenc.ope_encoder_write_float(enc, pcm, samples_per_channel)
+
+        libopusenc.ope_encoder_write.restype = c_int
+        libopusenc.ope_encoder_write.argtypes = [ooe_p, c_float_p, c_int]
+
+        def ope_encoder_write(enc, pcm, samples_per_channel):
+            return libopusenc.ope_encoder_write(enc, pcm, samples_per_channel)
+
+        libopusenc.ope_encoder_get_page.restype = c_int
+        libopusenc.ope_encoder_get_page.argtypes = [ooe_p, POINTER(c_uchar_p), opus_int32_p, c_int]
+
+        def ope_encoder_get_page(enc, page, len, flush):
+            return libopusenc.ope_encoder_get_page(enc, page, len, flush)
+
+        libopusenc.ope_encoder_drain.restype = c_int
+        libopusenc.ope_encoder_drain.argtypes = [ooe_p]
+
+        def ope_encoder_drain(enc):
+            return libopusenc.ope_encoder_drain(enc)
+
+        libopusenc.ope_encoder_destroy.restype = None
+        libopusenc.ope_encoder_destroy.argtypes = [ooe_p]
+
+        def ope_encoder_destroy(enc):
+            return libopusenc.ope_encoder_destroy(enc)
+
+        libopusenc.ope_encoder_chain_current.restype = c_int
+        libopusenc.ope_encoder_chain_current.argtypes = [ooe_p, ooc_p]
+
+        def ope_encoder_chain_current(enc, comments):
+            return libopusenc.ope_encoder_chain_current(enc, comments)
+
+        libopusenc.ope_encoder_continue_new_file.restype = c_int
+        libopusenc.ope_encoder_continue_new_file.argtypes = [ooe_p, c_char_p, ooc_p]
+
+        def ope_encoder_continue_new_file(enc,path, comments):
+            return libopusenc.ope_encoder_continue_new_file(enc,path, comments)
+
+        libopusenc.ope_encoder_continue_new_callbacks.restype = c_int
+        libopusenc.ope_encoder_continue_new_callbacks.argtypes = [ooe_p, c_void_p, ooc_p]
+
+        def ope_encoder_continue_new_callbacks(enc,user_data, comments):
+            return libopusenc.ope_encoder_continue_new_callbacks(enc,user_data, comments)
+
+        libopusenc.ope_encoder_flush_header.restype = c_int
+        libopusenc.ope_encoder_flush_header.argtypes = [ooe_p]
+
+        def ope_encoder_flush_header(enc):
+            return libopusenc.ope_encoder_flush_header(enc)
+
+        libopusenc.ope_encoder_ctl.restype = c_int
+        libopusenc.ope_encoder_ctl.argtypes = [ooe_p, c_int]
+
+        def ope_encoder_ctl(enc, request, *args):
+            return libopusenc.ope_encoder_ctl(enc, request, *args)
+
+        libopusenc.ope_strerror.restype = c_char_p
+        libopusenc.ope_strerror.argtypes = [c_int]
+
+        def ope_strerror(error):
+            return libopusenc.ope_strerror(error)
+
+        libopusenc.ope_get_version_string.restype = c_char_p
+        libopusenc.ope_get_version_string.argtypes = None
+
+        def ope_get_version_string():
+            return libopusenc.ope_get_version_string()
+
+        libopusenc.ope_get_abi_version.restype = c_int
+        libopusenc.ope_get_abi_version.argtypes = None
+
+        def ope_get_abi_version():
+            return libopusenc.ope_get_abi_version()

@@ -9,38 +9,40 @@ __MINGW32__ = False
 
 _WIN32 = False
 
-try:
-    here = os.getcwd()
-    local_files = os.listdir(here)
-    lib_path = None
-    for file_name in local_files:
-        if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and "vorbis" in file_name.lower() and not "vorbisfile" in file_name.lower():
-            lib_path = os.path.join(here, file_name)
-            
-    if not lib_path:
-        lib_path = ctypes.util.find_library('vorbis')
-        
-    if lib_path is None:
-        raise ImportError('Vorbis shared library not found')
+from .ogg import *
 
-    libvorbis = ctypes.CDLL(lib_path)
+here = os.getcwd()
+local_files = os.listdir(here)
+
+# libvorbis
+lib_path = None
+for file_name in local_files:
+    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["vorbis", "libvorbis"]:
+        lib_path = os.path.join(here, file_name)
+        
+if not lib_path:
+    lib_path = ctypes.util.find_library('vorbis')
     
-    lib_path = None
-    for file_name in local_files:
-        if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and "vorbisfile" in file_name.lower():
-            lib_path = os.path.join(here, file_name)
-
-    if not lib_path:
-        lib_path = ctypes.util.find_library('vorbisfile')
-        
-    if lib_path is None:
-        raise ImportError('VorbisFile shared library not found')
-
-    libvorbisfile = ctypes.CDLL(lib_path)
-except:
-    _print_exc()
+if lib_path is None:
     libvorbis = None
+    
+libvorbis = ctypes.CDLL(lib_path)
+# /libvorbis
+
+# libvorbisfile
+lib_path = None
+for file_name in local_files:
+    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["vorbisfile", "libvorbisfile"]:
+        lib_path = os.path.join(here, file_name)
+
+if not lib_path:
+    lib_path = ctypes.util.find_library('vorbisfile')
+    
+if lib_path is None:
     libvorbisfile = None
+
+libvorbisfile = ctypes.CDLL(lib_path)
+# /libvorbisfile
 
 if libvorbis is None:
     PYOGG_VORBIS_AVAIL = False
@@ -52,7 +54,7 @@ if libvorbisfile is None:
 else:
     PYOGG_VORBIS_FILE_AVAIL = True
 
-from .ogg import *
+
 
 if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     # codecs
@@ -375,7 +377,6 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     OV_EBADPACKET =-136
     OV_EBADLINK   =-137
     OV_ENOSEEK    =-138
-
     # end of codecs
 
     # vorbisfile
@@ -691,3 +692,85 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
 
     def ov_halfrate_p(vf):
         return libvorbisfile.ov_halfrate_p(vf)
+    # end of vorbisfile
+    
+    # vorbisenc
+    libvorbis.vorbis_encode_init.restype = c_int
+    libvorbis.vorbis_encode_init.argtypes = [vi_p, c_long, c_long, c_long, c_long, c_long]
+
+    def vorbis_encode_init(vi, channels, rate, max_bitrate, nominal_bitrate, min_bitrate):
+        return libvorbis.vorbis_encode_init(vi, channels, rate, max_bitrate, nominal_bitrate, min_bitrate)
+
+    libvorbis.vorbis_encode_setup_managed.restype = c_int
+    libvorbis.vorbis_encode_setup_managed.argtypes = [vi_p, c_long, c_long, c_long, c_long, c_long]
+
+    def vorbis_encode_setup_managed(vi, channels, rate, max_bitrate, nominal_bitrate, min_bitrate):
+        return libvorbis.vorbis_encode_setup_managed(vi, channels, rate, max_bitrate, nominal_bitrate, min_bitrate)
+
+    libvorbis.vorbis_encode_setup_vbr.restype = c_int
+    libvorbis.vorbis_encode_setup_vbr.argtypes = [vi_p, c_long, c_long, c_float]
+
+    def vorbis_encode_setup_vbr(vi, channels, rate, quality):
+        return libvorbis.vorbis_encode_setup_vbr(vi, channels, rate, quality)
+
+    libvorbis.vorbis_encode_init_vbr.restype = c_int
+    libvorbis.vorbis_encode_init_vbr.argtypes = [vi_p, c_long, c_long, c_float]
+
+    def vorbis_encode_init_vbr(vi, channels, rate, quality):
+        return libvorbis.vorbis_encode_init_vbr(vi, channels, rate, quality)
+
+    libvorbis.vorbis_encode_setup_init.restype = c_int
+    libvorbis.vorbis_encode_setup_init.argtypes = [vi_p]
+
+    def vorbis_encode_setup_init(vi):
+        return libvorbis.vorbis_encode_setup_init(vi)
+
+    libvorbis.vorbis_encode_setup_init.restype = c_int
+    libvorbis.vorbis_encode_setup_init.argtypes = [vi_p, c_int, c_void_p]
+
+    def vorbis_encode_setup_init(vi, number, arg):
+        return libvorbis.vorbis_encode_setup_init(vi, number, arg)
+
+    class ovectl_ratemanage_arg(ctypes.Structure):
+        _fields_ = [("management_active", c_int),
+                    ("bitrate_hard_min", c_long),
+                    ("bitrate_hard_max", c_long),
+                    ("bitrate_hard_window", c_double),
+                    ("bitrate_av_lo", c_long),
+                    ("bitrate_av_hi", c_long),
+                    ("bitrate_av_window", c_double),
+                    ("bitrate_av_window_center", c_double)]
+
+    class ovectl_ratemanage2_arg(ctypes.Structure):
+        _fields_ = [("management_active", c_int),
+                    ("bitrate_limit_min_kbps", c_long),
+                    ("bitrate_limit_max_kbps", c_long),
+                    ("bitrate_limit_reservoir_bits", c_long),
+                    ("bitrate_limit_reservoir_bias", c_double),
+                    ("bitrate_average_kbps", c_long),
+                    ("bitrate_average_damping", c_double)]
+
+    OV_ECTL_RATEMANAGE2_GET      =0x14
+
+    OV_ECTL_RATEMANAGE2_SET      =0x15
+
+    OV_ECTL_LOWPASS_GET          =0x20
+
+    OV_ECTL_LOWPASS_SET          =0x21
+
+    OV_ECTL_IBLOCK_GET           =0x30
+
+    OV_ECTL_IBLOCK_SET           =0x31
+
+    OV_ECTL_COUPLING_GET         =0x40
+
+    OV_ECTL_COUPLING_SET         =0x41
+
+    OV_ECTL_RATEMANAGE_GET       =0x10
+
+    OV_ECTL_RATEMANAGE_SET       =0x11
+
+    OV_ECTL_RATEMANAGE_AVG       =0x12
+
+    OV_ECTL_RATEMANAGE_HARD      =0x13
+    # end of vorbisenc

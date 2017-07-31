@@ -8,23 +8,26 @@ import os
 class PyOggError(Exception):
     pass
 
-try:
-    here = os.getcwd()
-    local_files = os.listdir(here)
-    lib_path = None
-    for file_name in local_files:
-        if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and "ogg" in file_name.lower():
-            lib_path = os.path.join(here, file_name)
-            
-    if not lib_path:        
-        lib_path = ctypes.util.find_library('ogg')
+def get_raw_libname(name):
+    name = os.path.splitext(name)[0].lower()
+    for x in "0123456789._- ":name=name.replace(x,"")
+    return name
 
-    if lib_path is None:
-        raise ImportError('OGG shared library not found')
-    libogg = ctypes.CDLL(lib_path)
-except:
-    _print_exc()
+here = os.getcwd()
+local_files = os.listdir(here)
+
+lib_path = None
+for file_name in local_files:
+    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libogg", "ogg"]:
+        lib_path = os.path.join(here, file_name)
+        
+if not lib_path:        
+    lib_path = ctypes.util.find_library('ogg')
+
+if lib_path is None:
     libogg = None
+libogg = ctypes.CDLL(lib_path)
+    
 
 if not libogg:
     PYOGG_OGG_AVAIL = False

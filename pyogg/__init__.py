@@ -7,7 +7,7 @@ from . import vorbis
 from.vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL
 
 from . import opus
-from.opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL
+from.opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL, PYOGG_OPUS_ENC_AVAIL
 
 PYOGG_STREAM_BUFFER_SIZE = 8192
 
