@@ -26,7 +26,8 @@ if not lib_path:
 
 if lib_path is None:
     libogg = None
-libogg = ctypes.CDLL(lib_path)
+else:
+    libogg = ctypes.CDLL(lib_path)
     
 
 if not libogg:

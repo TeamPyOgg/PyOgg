@@ -25,8 +25,8 @@ if not lib_path:
     
 if lib_path is None:
     libvorbis = None
-    
-libvorbis = ctypes.CDLL(lib_path)
+else:
+    libvorbis = ctypes.CDLL(lib_path)
 # /libvorbis
 
 # libvorbisfile
@@ -40,8 +40,8 @@ if not lib_path:
     
 if lib_path is None:
     libvorbisfile = None
-
-libvorbisfile = ctypes.CDLL(lib_path)
+else:
+    libvorbisfile = ctypes.CDLL(lib_path)
 # /libvorbisfile
 
 if libvorbis is None:

@@ -46,3 +46,6 @@ LICENSE.txt
 setup.cfg
 setup.py
 test 3.py
+*.flac
+flac test.py
+check dll.bat
