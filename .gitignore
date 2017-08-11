@@ -49,3 +49,5 @@ test 3.py
 *.flac
 flac test.py
 check dll.bat
+pypi/build/lib/pyogg/flac.py
+pypi/pyogg/flac.py

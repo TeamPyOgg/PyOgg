@@ -18,7 +18,7 @@ You can import the various functions from pyogg.ogg, pyogg.vorbis, pyogg.opus an
 
 PyOgg is not capable of playing files, however, you can use OpenAL for normal or even 3D playback with [PyOpenAL](https://github.com/Zuzu-Typ/PyOpenAL).
 
-Currently FLAC is available purely in form of bindings, because I haven't managed to load a file yet myself (o )~(o ) ...
+Currently FLAC cannot be streamed (at least not on Windows), because there seems to be an issue with processing single audio frames.
 
 Here's a reference for PyOgg's own classes and functions:
 
@@ -54,6 +54,22 @@ Here's a reference for PyOgg's own classes and functions:
 		<int> OpusFile.buffer_length
 			# length of the buffer
 			
+	<class> pyogg.FlacFile(path)
+		# opens and reads a FLAC file to a buffer. 
+			<str> path # path to the file (can be relative or absolute)
+		
+		<int> FlacFile.channels
+			# how many audio channels the audio data has (1 = mono, 2 = stereo, etc.)
+		
+		<int> FlacFile.frequency
+			# audio frequency (e.g. 48000, 44100, etc.)
+			
+		<FLAC__int16_Array> FlacFile.buffer
+			# audio data
+			
+		<int> FlacFile.buffer_length
+			# length of the buffer
+			
 	<class> pyogg.VorbisFileStream(path)
 		# opens an OGG Vorbis file and prepares it for repeated reading. 
 			<str> path # path to the file (can be relative or absolute)
@@ -80,7 +96,7 @@ Here's a reference for PyOgg's own classes and functions:
 		# opens an OGG Opus file and prepares it for repeated reading. 
 			<str> path # path to the file (can be relative or absolute)
 			
-		<vorbis.OggVorbis_File> OpusFileStream.vf
+		<opus.OggOpusFile> OpusFileStream.of
 			# Opus audio file stream
 			
 		<int> OpusFileStream.channels
@@ -93,6 +109,28 @@ Here's a reference for PyOgg's own classes and functions:
 			# reads some audio data into a buffer (to set the buffer size, see pyoggSetStreamBufferSize)
 			# if the file reaches it's end this method returns None
 				<opus_int16_p> buffer # a buffer containing some audio data
+				<int> buffer_length   # length of the buffer
+				
+		<method> clean_up() -> None
+			# deletes the buffer and closes the file
+			
+	<class> pyogg.FlacFileStream(path)
+		# opens a FLAC file and prepares it for repeated reading. 
+			<str> path # path to the file (can be relative or absolute)
+			
+		<FLAC__StreamDecoder> FlacFileStream.decoder
+			# FLAC audio file stream decoder
+			
+		<int> OpusFileStream.channels
+			# how many audio channels the audio data has (1 = mono, 2 = stereo, etc.)
+		
+		<int> OpusFileStream.frequency
+			# audio frequency (always 48000)
+			
+		<method> get_buffer() -> [buffer, buffer_length] or None
+			# reads some audio data into a buffer (to set the buffer size, see pyoggSetStreamBufferSize)
+			# if the file reaches it's end this method returns None
+				<FLAC__int16_Array> buffer # a buffer containing some audio data
 				<int> buffer_length   # length of the buffer
 				
 		<method> clean_up() -> None
