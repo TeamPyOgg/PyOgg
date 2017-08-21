@@ -42,22 +42,22 @@ import os
 
 from .ogg import *
 
-here = os.getcwd()
-local_files = os.listdir(here)
+__here = os.getcwd()
+__local_files = os.listdir(__here)
 
-lib_path = None
-for file_name in local_files:
+__lib_path = None
+for file_name in __local_files:
     if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libflac", "flac", "libflac++", "flac++"]:
-        lib_path = os.path.join(here, file_name)
+        __lib_path = os.path.join(__here, file_name)
         
-if not lib_path:        
-    lib_path = ctypes.util.find_library('flac')
+if not __lib_path:        
+    __lib_path = ctypes.util.find_library('flac')
 
-if lib_path is None:
+if __lib_path is None:
     libflac = None
     PYOGG_FLAC_AVAIL = False
 else:
-    libflac = ctypes.CDLL(lib_path)
+    libflac = ctypes.CDLL(__lib_path)
     PYOGG_FLAC_AVAIL = True
     
 # ctypes

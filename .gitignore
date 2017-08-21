@@ -51,3 +51,7 @@ flac test.py
 check dll.bat
 pypi/build/lib/pyogg/flac.py
 pypi/pyogg/flac.py
+pypi/COPYING
+pypi/LICENSE
+pypi/MANIFEST.in
+pypi/README.md

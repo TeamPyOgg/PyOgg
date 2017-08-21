@@ -81,6 +81,40 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+############################################################
+# Opusenc license:                                         #
+############################################################
+"""
+Copyright (c) 1994-2013 Xiph.Org Foundation and contributors
+Copyright (c) 2017 Jean-Marc Valin
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+
+- Redistributions of source code must retain the above copyright
+notice, this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+- Neither the name of the Xiph.Org Foundation nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE FOUNDATION
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
 
 import ctypes
 import ctypes.util
@@ -88,53 +122,53 @@ import os
 
 from .ogg import *
 
-here = os.getcwd()
-local_files = os.listdir(here)
+__here = os.getcwd()
+__local_files = os.listdir(__here)
 
 # libopus
-lib_path = None
-for file_name in local_files:
+__lib_path = None
+for file_name in __local_files:
     if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopus", "opus"]:
-        lib_path = os.path.join(here, file_name)
+        __lib_path = os.path.join(__here, file_name)
 
-if not lib_path:
-    lib_path = ctypes.util.find_library('opus')
+if not __lib_path:
+    __lib_path = ctypes.util.find_library('opus')
     
-if lib_path is None:
+if __lib_path is None:
     libopus = None
 else:
-    libopus = ctypes.CDLL(lib_path)
+    libopus = ctypes.CDLL(__lib_path)
 # /libopus
 
 # libopusfile
-lib_path = None
-for file_name in local_files:
+__lib_path = None
+for file_name in __local_files:
     if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopusfile", "opusfile"]:
-        lib_path = os.path.join(here, file_name)
+        __lib_path = os.path.join(__here, file_name)
         
-if not lib_path:
-    lib_path = ctypes.util.find_library('opusfile')
+if not __lib_path:
+    __lib_path = ctypes.util.find_library('opusfile')
     
-if lib_path is None:
+if __lib_path is None:
     libopusfile = None
 else:
-    libopusfile = ctypes.CDLL(lib_path)
+    libopusfile = ctypes.CDLL(__lib_path)
 # /libopusfile
     
 
 # libopusenc
-lib_path = None
-for file_name in local_files:
+__lib_path = None
+for file_name in __local_files:
     if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopusenc", "opusenc"]:
-        lib_path = os.path.join(here, file_name)
+        __lib_path = os.path.join(__here, file_name)
 
-if not lib_path:
-    lib_path = ctypes.util.find_library('opusenc')
+if not __lib_path:
+    __lib_path = ctypes.util.find_library('opusenc')
     
-if lib_path is None:
+if __lib_path is None:
     libopusenc = None
 else:
-    libopusenc = ctypes.CDLL(lib_path)
+    libopusenc = ctypes.CDLL(__lib_path)
 # /libopusenc
 
 if not libopus:
