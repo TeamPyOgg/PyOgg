@@ -1,57 +1,13 @@
-
 *.dll
 *.pyc
-test.py
 *.ogg
-openal/__init__.py
-openal/_al.py
-openal/_alc.py
-openal/_alut.py
-x64/openal/__init__.py
-x64/openal/_al.py
-x64/openal/_alc.py
-x64/openal/_alut.py
-x64/pyogg/__init__.py
-x64/pyogg/ogg.py
-x64/pyogg/opus.py
-x64/pyogg/vorbis.py
 *.h
 *.opus
-opus_test.py
-test 2.py
-opus_test 2.py
-stream_test.py
-pypi/.pypirc
-pypi/build/lib/pyogg/__init__.py
-pypi/build/lib/pyogg/ogg.py
-pypi/build/lib/pyogg/opus.py
-pypi/build/lib/pyogg/vorbis.py
 *.whl
 *.gz
-pypi/LICENSE.txt
-pypi/PyOgg.egg-info/dependency_links.txt
-pypi/PyOgg.egg-info/PKG-INFO
-pypi/PyOgg.egg-info/SOURCES.txt
-pypi/PyOgg.egg-info/top_level.txt
-pypi/pyogg/__init__.py
-pypi/pyogg/ogg.py
-pypi/pyogg/opus.py
-pypi/pyogg/vorbis.py
-pypi/README.rst
-pypi/setup.bat
-pypi/setup.cfg
-pypi/setup.py
-pypi/upload.bat
-LICENSE.txt
-setup.cfg
-setup.py
-test 3.py
 *.flac
-flac test.py
-check dll.bat
-pypi/build/lib/pyogg/flac.py
-pypi/pyogg/flac.py
-pypi/COPYING
-pypi/LICENSE
-pypi/MANIFEST.in
-pypi/README.md
+.pypirc
+build/
+dist/
+PyOgg.egg-info/
+*.bat

@@ -39,6 +39,8 @@ import sys
 from traceback import print_exc as _print_exc
 import os
 
+from .library_loader import ExternalLibrary
+
 class PyOggError(Exception):
     pass
 
@@ -48,26 +50,18 @@ def get_raw_libname(name):
     return name
 
 __here = os.getcwd()
-__local_files = os.listdir(__here)
 
-__lib_path = None
-for file_name in __local_files:
-    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libogg", "ogg"]:
-        __lib_path = os.path.join(__here, file_name)
-        
-if not __lib_path:        
-    __lib_path = ctypes.util.find_library('ogg')
+libogg = None
 
-if __lib_path is None:
-    libogg = None
-else:
-    libogg = ctypes.CDLL(__lib_path)
-    
+try:
+    libogg = ExternalLibrary.load("ogg")
+except:
+    pass
 
-if not libogg:
-    PYOGG_OGG_AVAIL = False
-else:
+if libogg:
     PYOGG_OGG_AVAIL = True
+else:
+    PYOGG_OGG_AVAIL = False
 
 if PYOGG_OGG_AVAIL:
     if sys.version_info.major > 2:

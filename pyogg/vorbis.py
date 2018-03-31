@@ -45,53 +45,30 @@ _WIN32 = False
 
 from .ogg import *
 
+from .library_loader import ExternalLibrary
+
 __here = os.getcwd()
-__local_files = os.listdir(__here)
 
-# libvorbis
-__lib_path = None
-for file_name in __local_files:
-    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["vorbis", "libvorbis"]:
-        __lib_path = os.path.join(__here, file_name)
-        
-if not __lib_path:
-    __lib_path = ctypes.util.find_library('vorbis')
-    
-if __lib_path is None:
-    libvorbis = None
-else:
-    libvorbis = ctypes.CDLL(__lib_path)
-# /libvorbis
+libvorbis = None
 
-# libvorbisfile
-__lib_path = None
-for file_name in __local_files:
-    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["vorbisfile", "libvorbisfile"]:
-        __lib_path = os.path.join(__here, file_name)
+try:
+    libvorbis = ExternalLibrary.load("vorbis")
+except:
+    pass
 
-if not __lib_path:
-    __lib_path = ctypes.util.find_library('vorbisfile')
-    
-if __lib_path is None:
-    libvorbisfile = None
-else:
-    libvorbisfile = ctypes.CDLL(__lib_path)
-# /libvorbisfile
+libvorbisfile = None
 
-# libvorbisenc
-__lib_path = None
-for file_name in __local_files:
-    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["vorbisenc", "libvorbisenc"]:
-        __lib_path = os.path.join(__here, file_name)
+try:
+    libvorbisfile = ExternalLibrary.load("vorbisfile")
+except:
+    pass
 
-if not __lib_path:
-    __lib_path = ctypes.util.find_library('vorbisenc')
-    
-if __lib_path is None:
-    libvorbisenc = libvorbis
-else:
-    libvorbisenc = ctypes.CDLL(__lib_path)
-# /libvorbisenc
+libvorbisenc = None
+
+try:
+    libvorbisenc = ExternalLibrary.load("vorbisenc")
+except:
+    pass
 
 if libvorbis is None:
     PYOGG_VORBIS_AVAIL = False

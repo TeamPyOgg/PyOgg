@@ -122,69 +122,44 @@ import os
 
 from .ogg import *
 
+from .library_loader import ExternalLibrary
+
 __here = os.getcwd()
-__local_files = os.listdir(__here)
+libopus = None
 
-# libopus
-__lib_path = None
-for file_name in __local_files:
-    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopus", "opus"]:
-        __lib_path = os.path.join(__here, file_name)
+try:
+    libopus = ExternalLibrary.load("opus")
+except:
+    pass
 
-if not __lib_path:
-    __lib_path = ctypes.util.find_library('opus')
-    
-if __lib_path is None:
-    libopus = None
-else:
-    libopus = ctypes.CDLL(__lib_path)
-# /libopus
+libopusfile = None
 
-# libopusfile
-__lib_path = None
-for file_name in __local_files:
-    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopusfile", "opusfile"]:
-        __lib_path = os.path.join(__here, file_name)
-        
-if not __lib_path:
-    __lib_path = ctypes.util.find_library('opusfile')
-    
-if __lib_path is None:
-    libopusfile = None
-else:
-    libopusfile = ctypes.CDLL(__lib_path)
-# /libopusfile
-    
+try:
+    libopusfile = ExternalLibrary.load("opusfile")
+except:
+    pass
 
-# libopusenc
-__lib_path = None
-for file_name in __local_files:
-    if os.path.splitext(file_name)[1].lower() in (".lib", ".a", ".so", ".la", ".dll") and get_raw_libname(file_name) in ["libopusenc", "opusenc"]:
-        __lib_path = os.path.join(__here, file_name)
+libopusenc = None
 
-if not __lib_path:
-    __lib_path = ctypes.util.find_library('opusenc')
-    
-if __lib_path is None:
-    libopusenc = None
-else:
-    libopusenc = ctypes.CDLL(__lib_path)
-# /libopusenc
+try:
+    libopusenc = ExternalLibrary.load("opusenc")
+except:
+    pass
 
-if not libopus:
-    PYOGG_OPUS_AVAIL = False
-else:
+if libopus:
     PYOGG_OPUS_AVAIL = True
+else:
+    PYOGG_OPUS_AVAIL = False
     
-if not libopusfile:
-    PYOGG_OPUS_FILE_AVAIL = False
-else:
+if libopusfile:
     PYOGG_OPUS_FILE_AVAIL = True
-
-if not libopusenc:
-    PYOGG_OPUS_ENC_AVAIL = False
 else:
+    PYOGG_OPUS_FILE_AVAIL = False
+
+if libopusenc:
     PYOGG_OPUS_ENC_AVAIL = True
+else:
+    PYOGG_OPUS_ENC_AVAIL = False
 
 if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     # all definitions
@@ -343,6 +318,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     opus_int16_p = POINTER(c_int16)
     opus_uint16 = c_uint16
     opus_int32 = c_int32
+    opus_int32_p = POINTER(opus_int32)
     opus_uint32 = c_uint32
 
     opus_int  =  c_int  
@@ -1159,9 +1135,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
         class OggOpusEnc(ctypes.Structure):
             _fields_ = [("dummy", c_int)]
 
-        ooe = POINTER(OggOpusEnc)
-
-        OggOpusComments *ope_comments_create(void);
+        ooe_p = POINTER(OggOpusEnc)
 
         libopusenc.ope_comments_create.restype = ooc_p
         libopusenc.ope_comments_create.argtypes = None

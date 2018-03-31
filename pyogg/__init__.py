@@ -1,4 +1,3 @@
-__version__ = "0.0.1"
 import ctypes
 from . import ogg
 from .ogg import PyOggError, PYOGG_OGG_AVAIL
