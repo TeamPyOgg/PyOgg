@@ -337,20 +337,19 @@ if PYOGG_FLAC_AVAIL:
 
                 arr = list(chain.from_iterable(zip(*arrays)))
                 
-                self.buffer[:len(arr)] = arr[:]
-                self.bytes_written = len(arr)
+                self.buffer = (flac.FLAC__int16*len(arr))(*arr)
+                self.bytes_written = len(arr) * 2
                 
             else:
                 arr = ctypes.cast(multi_channel_buf[0], ctypes.POINTER(flac.FLAC__int32*arr_size)).contents
-                self.buffer[:arr_size] = arr[:]
-                self.bytes_written = arr_size
+                self.buffer = (flac.FLAC__int16*len(arr))(*arr[:])
+                self.bytes_written = arr_size * 2
             return 0
 
         def metadata_callback(self,decoder, metadata, client_data):
-            if not self.buffer:
-                self.total_samples = metadata.contents.data.stream_info.total_samples
-                self.channels = metadata.contents.data.stream_info.channels
-                self.frequency = metadata.contents.data.stream_info.sample_rate
+            self.total_samples = metadata.contents.data.stream_info.total_samples
+            self.channels = metadata.contents.data.stream_info.channels
+            self.frequency = metadata.contents.data.stream_info.sample_rate
 
         def error_callback(self,decoder, status, client_data):
             raise PyOggError("An error occured during the process of decoding. Status enum: {}".format(flac.FLAC__StreamDecoderErrorStatusEnum[status]))
@@ -366,21 +365,21 @@ if PYOGG_FLAC_AVAIL:
 
             self.total_samples = None
 
-            self.buffer = flac.FLAC__int32*8192
+            self.buffer = None
 
             self.bytes_written = None
 
-            write_callback_ = flac.FLAC__StreamDecoderWriteCallback(self.write_callback)
+            self.write_callback_ = flac.FLAC__StreamDecoderWriteCallback(self.write_callback)
 
-            metadata_callback_ = flac.FLAC__StreamDecoderMetadataCallback(self.metadata_callback)
+            self.metadata_callback_ = flac.FLAC__StreamDecoderMetadataCallback(self.metadata_callback)
 
-            error_callback_ = flac.FLAC__StreamDecoderErrorCallback(self.error_callback)
+            self.error_callback_ = flac.FLAC__StreamDecoderErrorCallback(self.error_callback)
 
             init_status = flac.FLAC__stream_decoder_init_file(self.decoder,
                                           _to_char_p(path),
-                                          write_callback_,
-                                          metadata_callback_,
-                                          error_callback_,
+                                          self.write_callback_,
+                                          self.metadata_callback_,
+                                          self.error_callback_,
                                           self.client_data)
 
             if init_status: # error
@@ -391,12 +390,13 @@ if PYOGG_FLAC_AVAIL:
                 raise PyOggError("An error occured when trying to decode the metadata of {}".format(path))
 
         def get_buffer(self):
-            print(flac.FLAC__stream_decoder_get_state(self.decoder))
+            if (flac.FLAC__stream_decoder_get_state(self.decoder) == 4): # end of stream
+                return None
             stream_status = (flac.FLAC__stream_decoder_process_single(self.decoder))
             if not stream_status: # error
                 raise PyOggError("An error occured when trying to decode the audio stream of {}".format(path))
 
-            buffer_ = self.buffer[:self.bytes_written]
+            buffer_ = ctypes.pointer(self.buffer)
 
             return(buffer_, self.bytes_written)
 

@@ -20,8 +20,6 @@ You can import the various functions from pyogg.ogg, pyogg.vorbis, pyogg.opus an
 
 PyOgg is not capable of playing files, however, you can use OpenAL for normal or even 3D playback with [PyOpenAL](https://github.com/Zuzu-Typ/PyOpenAL).
 
-Currently FLAC cannot be streamed (at least not on Windows), because there seems to be an issue with processing single audio frames.
-
 Here's a reference for PyOgg's own classes and functions:
 
 	<class> pyogg.VorbisFile(path)

@@ -90,7 +90,6 @@ class ExternalLibrary:
                             not_supported.append(candidate)
 
         if not_supported:
-            print(not_supported)
             raise ExternalLibraryError("library '{}' couldn't be loaded, because the following candidates were not supported:".format(name)
                                  + ("\n{}" * len(not_supported)).format(*not_supported))
 
