@@ -30,7 +30,7 @@ class ExternalLibrary:
         if sys.platform == "win32":
             return ExternalLibrary.load_windows(name, paths)
         else:
-            return ExternalLibrary.load_other(name, pahts)
+            return ExternalLibrary.load_other(name, paths)
 
     @staticmethod
     def load_other(name, paths = None):
