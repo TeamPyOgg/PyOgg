@@ -45,7 +45,7 @@ _WIN32 = False
 
 from .ogg import *
 
-from .library_loader import ExternalLibrary
+from . import library_loader as ExternalLibrary
 
 __here = os.getcwd()
 
@@ -53,22 +53,28 @@ libvorbis = None
 
 try:
     libvorbis = ExternalLibrary.load("vorbis")
-except:
+except ExternalLibrary.NotFoundError:
     pass
+except:
+    _print_exc()
 
 libvorbisfile = None
 
 try:
     libvorbisfile = ExternalLibrary.load("vorbisfile")
-except:
+except ExternalLibrary.NotFoundError:
     pass
+except:
+    _print_exc()
 
 libvorbisenc = None
 
 try:
     libvorbisenc = ExternalLibrary.load("vorbisenc")
-except:
+except ExternalLibrary.NotFoundError:
     pass
+except:
+    _print_exc()
 
 if libvorbis is None:
     PYOGG_VORBIS_AVAIL = False

@@ -120,31 +120,39 @@ import ctypes
 import ctypes.util
 import os
 
+from traceback import print_exc as _print_exc
+
 from .ogg import *
 
-from .library_loader import ExternalLibrary
+from . import library_loader as ExternalLibrary
 
 __here = os.getcwd()
 libopus = None
 
 try:
     libopus = ExternalLibrary.load("opus")
-except:
+except ExternalLibrary.NotFoundError:
     pass
+except:
+    _print_exc()
 
 libopusfile = None
 
 try:
     libopusfile = ExternalLibrary.load("opusfile")
-except:
+except ExternalLibrary.NotFoundError:
     pass
+except:
+    _print_exc()
 
 libopusenc = None
 
 try:
     libopusenc = ExternalLibrary.load("opusenc")
-except:
+except ExternalLibrary.NotFoundError:
     pass
+except:
+    _print_exc()
 
 if libopus:
     PYOGG_OPUS_AVAIL = True

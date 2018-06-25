@@ -28,16 +28,19 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.6.2a1',
+    version='0.6.4a1',
 
     description='Xiph.org\'s Ogg Vorbis, Opus and FLAC for Python',
-    long_description=long_description,
+    
+    long_description=open(path.join(here, 'README.md')).read(),
+    long_description_content_type='text/markdown',
 
     # The project's main homepage.
     url='https://github.com/Zuzu-Typ/PyOgg',
 
     # Author details
     author='Zuzu_Typ',
+    author_email='zuzu.typ@gmail.com',
 
     # Choose your license
     license='BSD 3-clause "New" or "Revised"',

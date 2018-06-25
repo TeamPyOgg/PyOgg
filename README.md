@@ -121,11 +121,11 @@ Here's a reference for PyOgg's own classes and functions:
 		<FLAC__StreamDecoder> FlacFileStream.decoder
 			# FLAC audio file stream decoder
 			
-		<int> OpusFileStream.channels
+		<int> FlacFileStream.channels
 			# how many audio channels the audio data has (1 = mono, 2 = stereo, etc.)
 		
-		<int> OpusFileStream.frequency
-			# audio frequency (always 48000)
+		<int> FlacFileStream.frequency
+			# audio frequency (e.g. 48000, 44100, etc.)
 			
 		<method> get_buffer() -> [buffer, buffer_length] or None
 			# reads some audio data into a buffer (to set the buffer size, see pyoggSetStreamBufferSize)

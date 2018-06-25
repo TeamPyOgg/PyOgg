@@ -42,7 +42,7 @@ import os
 
 from .ogg import *
 
-from .library_loader import ExternalLibrary
+from . import library_loader as ExternalLibrary
 
 __here = os.getcwd()
 
@@ -50,8 +50,10 @@ libflac = None
 
 try:
     libflac = ExternalLibrary.load("flac")
-except:
+except ExternalLibrary.NotFoundError:
     pass
+except:
+    _print_exc()
 
 if libflac:
     PYOGG_FLAC_AVAIL = True
