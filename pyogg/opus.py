@@ -124,14 +124,14 @@ from traceback import print_exc as _print_exc
 
 from .ogg import *
 
-from . import library_loader as ExternalLibrary
+from .library_loader import ExternalLibrary, ExternalLibraryError
 
 __here = os.getcwd()
 libopus = None
 
 try:
     libopus = ExternalLibrary.load("opus")
-except ExternalLibrary.NotFoundError:
+except ExternalLibraryError:
     pass
 except:
     _print_exc()
@@ -140,7 +140,7 @@ libopusfile = None
 
 try:
     libopusfile = ExternalLibrary.load("opusfile")
-except ExternalLibrary.NotFoundError:
+except ExternalLibraryError:
     pass
 except:
     _print_exc()
@@ -149,7 +149,7 @@ libopusenc = None
 
 try:
     libopusenc = ExternalLibrary.load("opusenc")
-except ExternalLibrary.NotFoundError:
+except ExternalLibraryError:
     pass
 except:
     _print_exc()

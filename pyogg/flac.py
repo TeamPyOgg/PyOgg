@@ -42,7 +42,7 @@ import os
 
 from .ogg import *
 
-from . import library_loader as ExternalLibrary
+from .library_loader import ExternalLibrary, ExternalLibraryError
 
 __here = os.getcwd()
 
@@ -50,7 +50,7 @@ libflac = None
 
 try:
     libflac = ExternalLibrary.load("flac")
-except ExternalLibrary.NotFoundError:
+except ExternalLibraryError:
     pass
 except:
     _print_exc()

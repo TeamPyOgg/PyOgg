@@ -39,7 +39,7 @@ import sys
 from traceback import print_exc as _print_exc
 import os
 
-from . import library_loader as ExternalLibrary
+from .library_loader import ExternalLibrary, ExternalLibraryError
 
 class PyOggError(Exception):
     pass
@@ -55,7 +55,7 @@ libogg = None
 
 try:
     libogg = ExternalLibrary.load("ogg")
-except ExternalLibrary.NotFoundError:
+except ExternalLibraryError:
     pass
 except:
     _print_exc()
