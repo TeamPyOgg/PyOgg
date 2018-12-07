@@ -236,7 +236,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             return(buf, samples_read.value*self.channels*2)
 
         def clean_up(self):
-            self.ptr = self.ptr_init
+            self.ptr.contents.value = self.ptr_init
 
             del self.ptr
 
