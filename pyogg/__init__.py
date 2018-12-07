@@ -210,10 +210,15 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             self.ptr_init = self.ptr.contents.value
 
         def get_buffer(self):
+            if not hasattr(self, 'ptr'):
+                return None
+
             samples_read = ctypes.c_int(0)
             while True:
                 self.ptr.contents.value = self.ptr_init + samples_read.value*self.channels*2
                 ns = opus.op_read(self.of, self.buffer , PYOGG_STREAM_BUFFER_SIZE*self.channels,ogg.c_int_p())
+                if ns == 0:
+                    break
                 samples_read.value += ns
                 if samples_read.value*self.channels*2 + ns >= PYOGG_STREAM_BUFFER_SIZE:
                     break
@@ -231,7 +236,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             return(buf, samples_read.value*self.channels*2)
 
         def clean_up(self):
-            self.ptr.contents.value = ptr_init
+            self.ptr.contents.value = self.ptr_init
 
             del self.ptr
 
