@@ -130,7 +130,7 @@ __here = os.getcwd()
 libopus = None
 
 try:
-    libopus = ExternalLibrary.load("opus")
+    libopus = ExternalLibrary.load("opus", tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
 except ExternalLibraryError:
     pass
 except:
@@ -139,7 +139,7 @@ except:
 libopusfile = None
 
 try:
-    libopusfile = ExternalLibrary.load("opusfile")
+    libopusfile = ExternalLibrary.load("opusfile", tests = [lambda lib: hasattr(lib, "opus_head_parse")])
 except ExternalLibraryError:
     pass
 except:
@@ -148,7 +148,7 @@ except:
 libopusenc = None
 
 try:
-    libopusenc = ExternalLibrary.load("opusenc")
+    libopusenc = ExternalLibrary.load("opusenc", tests = [lambda lib: hasattr(lib, "ope_comments_create")])
 except ExternalLibraryError:
     pass
 except:

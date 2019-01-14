@@ -52,7 +52,7 @@ __here = os.getcwd()
 libvorbis = None
 
 try:
-    libvorbis = ExternalLibrary.load("vorbis")
+    libvorbis = ExternalLibrary.load("vorbis", tests = [lambda lib: hasattr(lib, "vorbis_info_init")])
 except ExternalLibraryError:
     pass
 except:
@@ -61,7 +61,7 @@ except:
 libvorbisfile = None
 
 try:
-    libvorbisfile = ExternalLibrary.load("vorbisfile")
+    libvorbisfile = ExternalLibrary.load("vorbisfile", tests = [lambda lib: hasattr(lib, "ov_clear")])
 except ExternalLibraryError:
     pass
 except:
@@ -70,7 +70,7 @@ except:
 libvorbisenc = None
 
 try:
-    libvorbisenc = ExternalLibrary.load("vorbisenc")
+    libvorbisenc = ExternalLibrary.load("vorbisenc", tests = [lambda lib: hasattr(lib, "vorbis_encode_init")])
 except ExternalLibraryError:
     pass
 except:

@@ -54,7 +54,7 @@ __here = os.getcwd()
 libogg = None
 
 try:
-    libogg = ExternalLibrary.load("ogg")
+    libogg = ExternalLibrary.load("ogg", tests = [lambda lib: hasattr(lib, "oggpack_writeinit")])
 except ExternalLibraryError:
     pass
 except:
