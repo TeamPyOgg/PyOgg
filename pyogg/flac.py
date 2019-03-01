@@ -49,7 +49,7 @@ __here = os.getcwd()
 libflac = None
 
 try:
-    libflac = ExternalLibrary.load("flac", tests = [lambda lib: hasattr(lib, "FLAC__EntropyCodingMethodTypeString")])
+    libflac = ExternalLibrary.load("FLAC", tests = [lambda lib: hasattr(lib, "FLAC__EntropyCodingMethodTypeString")])
 except ExternalLibraryError:
     pass
 except:

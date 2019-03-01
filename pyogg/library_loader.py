@@ -48,14 +48,15 @@ class ExternalLibrary:
         if paths: os.environ["PATH"] += ";" + ";".join(paths)
 
         for style in _other_styles:
-            candidate = style.format(name)
-            library = ctypes.util.find_library(candidate)
-            try:
-                lib = ctypes.CDLL(library)
-                if all(run_tests(lib,tests)):
-                    return lib
-            except:
-                pass
+            for name in (name.upper(), name.lower()):
+                candidate = style.format(name)
+                library = ctypes.util.find_library(candidate)
+                try:
+                    lib = ctypes.CDLL(library)
+                    if all(run_tests(lib,tests)):
+                        return lib
+                except:
+                    pass
 
     @staticmethod
     def load_windows(name, paths = None, tests=[]):
