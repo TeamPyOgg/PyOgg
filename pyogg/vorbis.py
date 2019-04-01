@@ -491,12 +491,8 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     libvorbisfile.ov_fopen.restype = c_int
     libvorbisfile.ov_fopen.argtypes = [c_char_p, vf_p]
 
-    def ov_fopen(path, vf=None):
-        if not vf:
-            vf = OggVorbis_File()
-        vf_pointer = pointer(vf)
-        result = libvorbisfile.ov_fopen(to_char_p(path), vf_pointer)
-        return result, vf
+    def ov_fopen(path, vf):
+        return libvorbisfile.ov_fopen(to_char_p(path), vf_pointer)
 
     libvorbisfile.ov_open_callbacks.restype = c_int
     libvorbisfile.ov_open_callbacks.argtypes = [c_void_p, vf_p, c_char_p, c_long, ov_callbacks]

@@ -27,54 +27,45 @@ PYOGG_STREAM_BUFFER_SIZE = 8192
 if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
     class VorbisFile:
         def __init__(self, path):
-            error, vf = vorbis.ov_fopen(path)
+            vf = vorbis.OggVorbis_File()
+            error = vorbis.libvorbisfile.ov_fopen(vorbis.to_char_p(path), vf)
             if error != 0:
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
-            info = vorbis.ov_info(vf, -1)
+            info = vorbis.libvorbisfile.ov_info(vf, -1)
 
             self.channels = info.contents.channels
 
             self.frequency = info.contents.rate
 
-            array = (ctypes.c_char*32768)()
+            array = (ctypes.c_char*4096)()
 
             buffer_ = ctypes.cast(ctypes.pointer(array), ctypes.c_char_p)
 
-            self.buffer = b""
+            self.buffer_array = []
 
             bitstream = ctypes.c_int()
             bitstream_pointer = ctypes.pointer(bitstream)
 
             while True:
-                new_bytes = vorbis.ov_read(vf, buffer_, 32768, 0, 2, 1, bitstream_pointer)
+                new_bytes = vorbis.libvorbisfile.ov_read(vf, buffer_, 4096, 0, 2, 1, bitstream_pointer)
                 
-                array_ = ctypes.cast(buffer_, ctypes.POINTER(ctypes.c_char*32768)).contents
+                array_ = ctypes.cast(buffer_, ctypes.POINTER(ctypes.c_char*4096)).contents
                 
-                if self.buffer:
-                    self.buffer += array_.raw[:new_bytes]
-                else:
-                    self.buffer = array_.raw[:new_bytes]
-
-                del array_
+                self.buffer_array.append(array_.raw[:new_bytes])
 
                 if new_bytes == 0:
                     break
 
-            del array
+            self.buffer = b"".join(self.buffer_array)
 
-            del buffer_
-
-            del bitstream
-
-            del bitstream_pointer
-
-            vorbis.ov_clear(vf)
+            vorbis.libvorbisfile.ov_clear(vf)
 
             self.buffer_length = len(self.buffer)
 
     class VorbisFileStream:
         def __init__(self, path):
-            error, self.vf = vorbis.ov_fopen(path)
+            self.vf = vorbis.OggVorbis_File()
+            error = vorbis.ov_fopen(path, self.vf)
             if error != 0:
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
                            
@@ -91,17 +82,14 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             self.bitstream = ctypes.c_int()
             self.bitstream_pointer = ctypes.pointer(self.bitstream)
 
-            del array
-
             self.exists = True
 
+        def __del__(self):
+            if self.exists:
+                vorbis.ov_clear(self.vf)
+            self.exists = False
+
         def clean_up(self):
-            del self.buffer_
-
-            del self.bitstream
-
-            del self.bitstream_pointer
-
             vorbis.ov_clear(self.vf)
 
             self.exists = False
@@ -110,28 +98,28 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             """get_buffer() -> bytesBuffer, bufferLength"""
             if not self.exists:
                 return None
-            buffer = b""
+            buffer = []
+            total_bytes_written = 0
             
             while True:
-                new_bytes = vorbis.ov_read(self.vf, self.buffer_, PYOGG_STREAM_BUFFER_SIZE*self.channels - len(buffer), 0, 2, 1, self.bitstream_pointer)
+                new_bytes = vorbis.ov_read(self.vf, self.buffer_, PYOGG_STREAM_BUFFER_SIZE*self.channels - total_bytes_written, 0, 2, 1, self.bitstream_pointer)
                 
                 array_ = ctypes.cast(self.buffer_, ctypes.POINTER(ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))).contents
                 
-                if buffer:
-                    buffer += array_.raw[:new_bytes]
-                else:
-                    buffer = array_.raw[:new_bytes]
+                buffer.append(array_.raw[:new_bytes])
 
-                del array_
+                total_bytes_written += new_bytes
 
-                if new_bytes == 0 or len(buffer) == PYOGG_STREAM_BUFFER_SIZE*self.channels:
+                if new_bytes == 0 or total_bytes_written >= PYOGG_STREAM_BUFFER_SIZE*self.channels:
                     break
 
-            if len(buffer) == 0:
+            out_buffer = b"".join(buffer)
+
+            if total_bytes_written == 0:
                 self.clean_up()
                 return(None)
 
-            return(buffer, len(buffer))
+            return(out_buffer, total_bytes_written)
 else:
     class VorbisFile:
         def __init__(*args, **kw):
