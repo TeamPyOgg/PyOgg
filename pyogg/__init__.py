@@ -28,10 +28,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
     class VorbisFile:
         def __init__(self, path):
             vf = vorbis.OggVorbis_File()
-            error = vorbis.libvorbisfile.ov_fopen(vorbis.to_char_p(path), vf)
+            error = vorbis.libvorbisfile.ov_fopen(vorbis.to_char_p(path), ctypes.byref(vf))
             if error != 0:
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
-            info = vorbis.libvorbisfile.ov_info(vf, -1)
+            
+            info = vorbis.libvorbisfile.ov_info(ctypes.byref(vf), -1)
 
             self.channels = info.contents.channels
 
@@ -47,7 +48,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             bitstream_pointer = ctypes.pointer(bitstream)
 
             while True:
-                new_bytes = vorbis.libvorbisfile.ov_read(vf, buffer_, 4096, 0, 2, 1, bitstream_pointer)
+                new_bytes = vorbis.libvorbisfile.ov_read(ctypes.byref(vf), buffer_, 4096, 0, 2, 1, bitstream_pointer)
                 
                 array_ = ctypes.cast(buffer_, ctypes.POINTER(ctypes.c_char*4096)).contents
                 
@@ -58,18 +59,18 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
 
             self.buffer = b"".join(self.buffer_array)
 
-            vorbis.libvorbisfile.ov_clear(vf)
+            vorbis.libvorbisfile.ov_clear(ctypes.byref(vf))
 
             self.buffer_length = len(self.buffer)
 
     class VorbisFileStream:
         def __init__(self, path):
             self.vf = vorbis.OggVorbis_File()
-            error = vorbis.ov_fopen(path, self.vf)
+            error = vorbis.ov_fopen(path, ctypes.byref(self.vf))
             if error != 0:
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
                            
-            info = vorbis.ov_info(self.vf, -1)
+            info = vorbis.ov_info(ctypes.byref(self.vf), -1)
 
             self.channels = info.contents.channels
 
@@ -86,11 +87,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
 
         def __del__(self):
             if self.exists:
-                vorbis.ov_clear(self.vf)
+                vorbis.ov_clear(ctypes.byref(self.vf))
             self.exists = False
 
         def clean_up(self):
-            vorbis.ov_clear(self.vf)
+            vorbis.ov_clear(ctypes.byref(self.vf))
 
             self.exists = False
 
@@ -102,7 +103,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             total_bytes_written = 0
             
             while True:
-                new_bytes = vorbis.ov_read(self.vf, self.buffer_, PYOGG_STREAM_BUFFER_SIZE*self.channels - total_bytes_written, 0, 2, 1, self.bitstream_pointer)
+                new_bytes = vorbis.ov_read(ctypes.byref(self.vf), self.buffer_, PYOGG_STREAM_BUFFER_SIZE*self.channels - total_bytes_written, 0, 2, 1, self.bitstream_pointer)
                 
                 array_ = ctypes.cast(self.buffer_, ctypes.POINTER(ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))).contents
                 
