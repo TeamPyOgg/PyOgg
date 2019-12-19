@@ -49,6 +49,11 @@ def get_raw_libname(name):
     for x in "0123456789._- ":name=name.replace(x,"")
     return name
 
+if sys.version_info.major > 2:
+    to_char_p = lambda s: s.encode('utf-8')
+else:
+    to_char_p = lambda s: s
+
 __here = os.getcwd()
 
 libogg = None
@@ -66,10 +71,6 @@ else:
     PYOGG_OGG_AVAIL = False
 
 if PYOGG_OGG_AVAIL:
-    if sys.version_info.major > 2:
-        to_char_p = lambda s: s.encode('utf-8')
-    else:
-        to_char_p = lambda s: s
 
     # ctypes
     c_ubyte_p = POINTER(c_ubyte)
