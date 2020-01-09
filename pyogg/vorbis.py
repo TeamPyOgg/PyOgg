@@ -89,6 +89,9 @@ else:
 
 
 if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
+    class OggVorbisError(Exception):
+        pass
+    
     # codecs
     class vorbis_info(ctypes.Structure):
         """
@@ -394,22 +397,58 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     def vorbis_synthesis_halfrate_p(vi):
         return libvorbis.vorbis_synthesis_halfrate_p(vi)
 
-    OV_FALSE =     -1
-    OV_EOF  =      -2
-    OV_HOLE  =     -3
+    OV_FALSE =     -1 # Not true, or no data available
+    OV_EOF  =      -2 # End of file
+    OV_HOLE  =     -3 # Vorbisfile encoutered missing or corrupt data in the bitstream. Recovery is normally automatic and this return code is for informational purposes only.
 
-    OV_EREAD  =    -128
-    OV_EFAULT    = -129
-    OV_EIMPL      =-130
-    OV_EINVAL     =-131
-    OV_ENOTVORBIS =-132
-    OV_EBADHEADER =-133
-    OV_EVERSION   =-134
+    OV_EREAD  =    -128 # Read error while fetching compressed data for decode
+    OV_EFAULT    = -129 # Internal inconsistency in encode or decode state. Continuing is likely not possible.
+    OV_EIMPL      =-130 # Feature not implemented
+    OV_EINVAL     =-131 # Either an invalid argument, or incompletely initialized argument passed to a call
+    OV_ENOTVORBIS =-132 # The given file/data was not recognized as Ogg Vorbis data.
+    OV_EBADHEADER =-133 # The file/data is apparently an Ogg Vorbis stream, but contains a corrupted or undecipherable header.
+    OV_EVERSION   =-134 # The bitstream format revision of the given stream is not supported.
     OV_ENOTAUDIO  =-135
     OV_EBADPACKET =-136
-    OV_EBADLINK   =-137
-    OV_ENOSEEK    =-138
+    OV_EBADLINK   =-137 # The given link exists in the Vorbis data stream, but is not decipherable due to garbacge or corruption.
+    OV_ENOSEEK    =-138 # The given stream is not seekable
     # end of codecs
+
+    errors = {
+        OV_FALSE        : "OV_FALSE",
+        OV_EOF          : "OV_EOF",
+        OV_HOLE         : "OV_HOLE",
+        
+        OV_EREAD        : "OV_EREAD",
+        OV_EFAULT       : "OV_EFAULT",
+        OV_EIMPL        : "OV_EIMPL",
+        OV_EINVAL       : "OV_EINVAL",
+        OV_ENOTVORBIS   : "OV_ENOTVORBIS",
+        OV_EBADHEADER   : "OV_EBADHEADER",
+        OV_EVERSION     : "OV_EVERSION",
+        OV_ENOTAUDIO    : "OV_ENOTAUDIO",
+        OV_EBADPACKET   : "OV_EBADPACKET",
+        OV_EBADLINK     : "OV_EBADLINK",
+        OV_ENOSEEK      : "OV_ENOSEEK"
+    }
+
+    error_docs = {
+        OV_FALSE        : "Not true, or no data available",
+        OV_EOF          : "End of file",
+        OV_HOLE         : "Vorbisfile encoutered missing or corrupt data in the bitstream. Recovery is normally automatic and this return code is for informational purposes only.",
+        
+        OV_EREAD        : "Read error while fetching compressed data for decode",
+        OV_EFAULT       : "Internal inconsistency in encode or decode state. Continuing is likely not possible.",
+        OV_EIMPL        : "Feature not implemented",
+        OV_EINVAL       : "Either an invalid argument, or incompletely initialized argument passed to a call",
+        OV_ENOTVORBIS   : "The given file/data was not recognized as Ogg Vorbis data.",
+        OV_EBADHEADER   : "The file/data is apparently an Ogg Vorbis stream, but contains a corrupted or undecipherable header.",
+        OV_EVERSION     : "The bitstream format revision of the given stream is not supported.",
+        OV_ENOTAUDIO    : "OV_ENOTAUDIO",
+        OV_EBADPACKET   : "OV_EBADPACKET",
+        OV_EBADLINK     : "The given link exists in the Vorbis data stream, but is not decipherable due to garbacge or corruption.",
+        OV_ENOSEEK      : "The given stream is not seekable"
+    }
 
     # vorbisfile
     read_func = ctypes.CFUNCTYPE(c_size_t,

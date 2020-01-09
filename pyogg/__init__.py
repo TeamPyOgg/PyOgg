@@ -1,4 +1,7 @@
 import ctypes
+import warnings
+import numpy
+
 from . import ogg
 from .ogg import PyOggError, PYOGG_OGG_AVAIL
 
@@ -22,46 +25,233 @@ def _to_char_p(string):
 def _resize_array(array, new_size):
     return (array._type_*new_size).from_address(ctypes.addressof(array))
 
+class AudioData:
+    INTERLACED_BYTES_8BIT = 1
+    INTERLACED_BYTES_16BIT = 2
+##    INTERLACED_BYTES_32BIT = 4
+##    INTERLACED_BYTES_64BIT = 5
+
+    FLOAT_ARRAYS = 3
+##    BYTE_ARRAY = 2
+##    CHAR_ARRAY = 3
+##    SHORT_ARRAY = 4
+##    FLOAT_ARRAY_CHANNEL_ARRAY = 5
+    
+    def __init__(self, data, type, samples, channels):
+        self.data = data
+        self.type = type
+        self.samples = samples
+        self.channels = channels
+
+    def get_data(self, target_type = None):
+        if target_type == None or target_type == self.type:
+            return self.data
+
+        elif target_type == self.INTERLACED_BYTES_8BIT:
+            if self.type == self.INTERLACED_BYTES_16BIT:
+                as_numpy_array = (numpy.frombuffer(self.data, dtype=numpy.int16) // 256).astype(numpy.int8)
+                return bytes(as_numpy_array)
+
+            elif self.type == self.FLOAT_ARRAYS:
+                as_interlaced_array = numpy.empty((self.samples * self.channels,), dtype=numpy.float32)
+                for i in range(self.channels):
+                    as_interlaced_array[i::self.channels] = self.data[i]
+
+                out = numpy.ceil((as_interlaced_array + 1.0) * 127.5).astype(numpy.int8) - numpy.int8(128)
+                print(out.shape)
+                return bytes(out)
+
+        elif target_type == self.INTERLACED_BYTES_16BIT:
+            if self.type == self.INTERLACED_BYTES_8BIT:
+                as_numpy_array = (numpy.frombuffer(self.data, dtype=numpy.int8) * 256).astype(numpy.int16)
+                return bytes(as_numpy_array)
+
+            elif self.type == self.FLOAT_ARRAYS:
+                as_interlaced_array = numpy.empty((self.samples * self.channels,), dtype=numpy.float32)
+                for i in range(self.channels):
+                    as_interlaced_array[i::self.channels] = self.data[i]
+
+                out = numpy.ceil((as_interlaced_array + 1.0) * 32767.5).astype(numpy.int16) - numpy.int16(32768)
+                return bytes(out)
+
+        elif target_type == self.FLOAT_ARRAYS:
+            if self.type == self.INTERLACED_BYTES_8BIT:
+                as_numpy_array = ((numpy.frombuffer(self.data, dtype=numpy.int8) + numpy.int8(128)).astype(numpy.float32) / 127.5) - 1.0
+                out_type = (ctypes.c_float * self.samples) * self.channels
+                print(as_numpy_array.shape, self.channels, self.samples)
+                out_arr_list = [(ctypes.c_float * self.samples)(*as_numpy_array[i::self.channels]) for i in range(self.channels)]
+                print(out_arr_list)
+                out_arr = out_type(*out_arr_list)
+                return out_arr
+
+            elif self.type == self.INTERLACED_BYTES_16BIT:
+                as_numpy_array = ((numpy.frombuffer(self.data, dtype=numpy.int16) + numpy.int16(32768)).astype(numpy.float32) / 32767.5) - 1.0
+                out_type = (ctypes.c_float * self.samples) * self.channels
+                print(as_numpy_array.shape)
+                out_arr_list = [(ctypes.c_float * self.samples)(*as_numpy_array[i::self.channels]) for i in range(self.channels)]
+                print(out_arr_list)
+                out_arr = out_type(*out_arr_list)
+                return out_arr
+
+    def as_bytes(self):
+        if self.type == bytes:
+            return self.data
+
+class AudioFile:
+    def read(num_of_bytes):
+        raise NotImplementedError("read() is not supported")
+
+    def write(data_bytes):
+        raise NotImplementedError("write() is not supported")
+
+    def get_channels():
+        raise NotImplementedError("get_channels() is not supported")
+
+    def get_frequency():
+        raise NotImplementedError("get_frequency() is not supported")
+
+    def get_samples():
+        raise NotImplementedError("get_samples in not supported")
+
+    def get_duration():
+        raise NotImplementedError("get_duration() is not supported")
+
+    def get_metadata():
+        raise NotImplementedError("get_metadata() is not supported")
+
+    def close():
+        raise NotImplementedError("close() is not supported")
+
 PYOGG_STREAM_BUFFER_SIZE = 8192
 
 if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
-    class VorbisFile:
+    class VorbisFile(AudioFile):
         def __init__(self, path):
-            vf = vorbis.OggVorbis_File()
-            error = vorbis.libvorbisfile.ov_fopen(vorbis.to_char_p(path), ctypes.byref(vf))
+            self.vf = vorbis.OggVorbis_File()
+            self.vf_ptr = ctypes.byref(self.vf)
+            self.path_ptr = vorbis.to_char_p(path)
+            
+            error = vorbis.libvorbisfile.ov_fopen(self.path_ptr, self.vf_ptr)
             if error != 0:
+                if error == vorbis.OV_EREAD:
+                    raise vorbis.OggVorbisError("A read from media returned an error.")
+                if error == vorbis.OV_ENOTVORBIS:
+                    raise vorbis.OggVorbisError("Bitstream does not contain any Vorbis data.")
+                if error == vorbis.OV_EVERSION:
+                    raise vorbis.OggVorbisError("Vorbis version mismatch.")
+                if error == vorbis.OV_EBADHEADER:
+                    raise vorbis.OggVorbisError("Invalid Vorbis bitstream header.")
+                if error == vorbis.OV_EFAULT:
+                    raise vorbis.OggVorbisError("Internal logic fault; indicates a bug or heap/stack corruption.")
+                if error in vorbis.error_docs:
+                    raise vorbis.OggVorbisError(vorbis.error_docs[error])
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
             
-            info = vorbis.libvorbisfile.ov_info(ctypes.byref(vf), -1)
+            info = vorbis.libvorbisfile.ov_info(self.vf_ptr, -1)
+
+            if not info:
+                raise vorbis.OggVorbisError("The file has been initialized improperly.")
 
             self.channels = info.contents.channels
 
             self.frequency = info.contents.rate
 
-            array = (ctypes.c_char*4096)()
+            self.samples = vorbis.libvorbisfile.ov_pcm_total(self.vf_ptr, -1)
 
-            buffer_ = ctypes.cast(ctypes.pointer(array), ctypes.c_char_p)
+            self.duration = vorbis.libvorbisfile.ov_time_total(self.vf_ptr, -1)
 
-            self.buffer_array = []
+            self.metadata = {}
+
+            comment = vorbis.libvorbisfile.ov_comment(self.vf_ptr, -1)
+
+            vorbis.libvorbisfile.ov_pcm_seek(self.vf_ptr, 0) # set position to 0 to prevent invalid tell values
+
+            for i in range(comment.contents.comments):
+                single_metadata = comment.contents.user_comments[i].decode()
+                if "=" in single_metadata:
+                    split_metadata = single_metadata.split("=")
+                    self.metadata[split_metadata[0].upper()] = split_metadata[1]
+                else:
+                    if not "UNKNOWN_COMMENTS" in self.metadata:
+                        self.metadata["UNKNOWN_COMMENTS"] = []
+                    self.metadata["UNKNOWN_COMMENTS"].append(single_metadata)
+                
+
+        def read(self, num_of_samples = None):
+            full_read = False
+            
+            if num_of_samples is None:
+                offset = vorbis.libvorbisfile.ov_pcm_tell(self.vf_ptr)
+                num_of_samples = self.samples - offset
+
+                full_read = True
+
+            if not num_of_samples:
+                return None
+
+            pcm = ctypes.POINTER(ctypes.POINTER(ctypes.c_float))()
+
+            buffer_ = ctypes.byref(pcm)
 
             bitstream = ctypes.c_int()
             bitstream_pointer = ctypes.pointer(bitstream)
 
-            while True:
-                new_bytes = vorbis.libvorbisfile.ov_read(ctypes.byref(vf), buffer_, 4096, 0, 2, 1, bitstream_pointer)
+            if not full_read:                
+                new_samples = vorbis.libvorbisfile.ov_read_float(self.vf_ptr, buffer_, num_of_samples, bitstream_pointer) # requesting floating point 32 bit data
+
+                if new_samples:
+                    out_datatype = (ctypes.c_float * new_samples) * self.channels
+                    out_arr = out_datatype()
+                    for i in range(self.channels):
+                        ctypes.memmove(out_arr[i], pcm[i], ctypes.sizeof(ctypes.c_float) * new_samples)
+                    return AudioData(out_arr, AudioData.FLOAT_ARRAYS, new_samples, self.channels)
+                return None
+            
+            else:
+                out_datatype = (ctypes.c_float * num_of_samples) * self.channels
+                out_arr = out_datatype()
+                out_arr_pointers = [ctypes.cast(out_arr[i], ctypes.c_void_p) for i in range(self.channels)]
+                num_of_samples_copy = num_of_samples
                 
-                array_ = ctypes.cast(buffer_, ctypes.POINTER(ctypes.c_char*4096)).contents
-                
-                self.buffer_array.append(array_.raw[:new_bytes])
+                while num_of_samples_copy:
+                    new_samples = vorbis.libvorbisfile.ov_read_float(self.vf_ptr, buffer_, num_of_samples_copy, bitstream_pointer) # requesting floating point 32 bit data
+                    if new_samples <= 0:
+                        break
 
-                if new_bytes == 0:
-                    break
+                    bytes_read = new_samples * ctypes.sizeof(ctypes.c_float)
 
-            self.buffer = b"".join(self.buffer_array)
+                    for i in range(self.channels):
+                        ctypes.memmove(out_arr_pointers[i], pcm[i], bytes_read)
+                        out_arr_pointers[i].value += bytes_read
 
-            vorbis.libvorbisfile.ov_clear(ctypes.byref(vf))
+                    num_of_samples_copy -= bytes_read
 
-            self.buffer_length = len(self.buffer)
+                return AudioData(out_arr, AudioData.FLOAT_ARRAYS, num_of_samples, self.channels)
+
+        def __getattr__(self, name):
+            if name == "buffer":
+                warnings.warn(DeprecationWarning("Accessing the buffer won't be supported in a future update"))
+                return self.read().get_data(AudioData.INTERLACED_BYTES_16BIT)
+
+            raise AttributeError("VorbisFile doesn't have the attribute '{}'".format(name))
+
+        def get_channels(self):
+            return self.channels
+
+        def get_frequency(self):
+            return self.frequency
+
+        def get_samples():
+            return self.samples
+
+        def get_duration():
+            return self.duration
+
+        def get_metadata(self):
+            return self.metadata
+
+        def close(self):
+            vorbis.libvorbisfile.ov_clear(ctypes.byref(self.vf))
 
     class VorbisFileStream:
         def __init__(self, path):
@@ -76,9 +266,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
 
             self.frequency = info.contents.rate
 
-            array = (ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))()
+            self.array = (ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))()
 
-            self.buffer_ = ctypes.cast(ctypes.pointer(array), ctypes.c_char_p)
+            self.buffer_ = ctypes.cast(ctypes.pointer(self.array), ctypes.c_char_p)
 
             self.bitstream = ctypes.c_int()
             self.bitstream_pointer = ctypes.pointer(self.bitstream)
@@ -101,18 +291,15 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
                 return None
             buffer = []
             total_bytes_written = 0
+
+            new_bytes = 1
             
-            while True:
+            while new_bytes and total_bytes_written < PYOGG_STREAM_BUFFER_SIZE*self.channels:
                 new_bytes = vorbis.ov_read(ctypes.byref(self.vf), self.buffer_, PYOGG_STREAM_BUFFER_SIZE*self.channels - total_bytes_written, 0, 2, 1, self.bitstream_pointer)
                 
-                array_ = ctypes.cast(self.buffer_, ctypes.POINTER(ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))).contents
-                
-                buffer.append(array_.raw[:new_bytes])
+                buffer.append(self.array.raw[:new_bytes])
 
                 total_bytes_written += new_bytes
-
-                if new_bytes == 0 or total_bytes_written >= PYOGG_STREAM_BUFFER_SIZE*self.channels:
-                    break
 
             out_buffer = b"".join(buffer)
 
@@ -136,7 +323,7 @@ else:
 
 
 
-if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
+if (PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
     class OpusFile:
         def __init__(self, path):
             error = ctypes.c_int()
@@ -154,7 +341,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             bfarr_t = opus.opus_int16*(pcm_size*self.channels)
 
-            self.buffer = ctypes.cast(ctypes.pointer(bfarr_t()),opus.opus_int16_p)
+            self.buffer_array = bfarr_t()
+
+            self.buffer_ptr = ctypes.cast(ctypes.pointer(self.buffer_array),opus.opus_int16_p)
+
+            self.buffer = self.buffer_ptr
 
             ptr = ctypes.cast(ctypes.pointer(self.buffer), ctypes.POINTER(ctypes.c_void_p))
 
