@@ -1,6 +1,6 @@
 import ctypes
-import warnings
 import numpy
+import sys
 
 from . import ogg
 from .ogg import PyOggError, PYOGG_OGG_AVAIL
@@ -315,17 +315,15 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
         def seek_time_page_lap(self, time):
             return vorbis.ov_time_seek_page_lap(self.vf_ptr, time)
 
-        def read(self, num_of_samples = None):
+        def read(self, num_of_samples = None, full_read = None):
             if not self.vf:
                 raise PyOggError("The file is closed")
-            
-            full_read = False
             
             if num_of_samples is None:
                 offset = vorbis.libvorbisfile.ov_pcm_tell(self.vf_ptr)
                 num_of_samples = self.samples - offset
 
-                full_read = True
+                if full_read is None: full_read = True
 
             if not num_of_samples:
                 return None
@@ -376,12 +374,21 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
 
                     num_of_samples_copy -= new_samples
 
+                if total_samples == 0:
+                    return None
+
                 return AudioData(out_arr, AudioData.FLOAT_ARRAYS, num_of_samples, self.channels)
 
         def __getattr__(self, name):
             if name == "buffer":
-                warnings.warn(DeprecationWarning("Accessing the buffer won't be supported in a future update"))
-                return self.read().get_data(AudioData.INTERLEAVED_BYTES_16BIT)
+                read = self.read()
+                self._deprecated_buffer = read.get_data(AudioData.INTERLEAVED_BYTES_16BIT) if read else None
+                print("DeprecationWarning: Accessing the buffer won't be supported in a future update", file=sys.stderr)
+                return self._deprecated_buffer
+
+            elif name == "buffer_length":
+                print("DeprecationWarning: Accessing buffer_length won't be supported in a future update", file=sys.stderr)
+                return len(self._deprecated_buffer) if self._deprecated_buffer else 0
 
             raise AttributeError("VorbisFile doesn't have the attribute '{}'".format(name))
 
@@ -406,35 +413,19 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             vorbis.libvorbisfile.ov_clear(self.vf_ptr)
             self.vf = None
 
-    class VorbisFileStream:
+    class VorbisFileStream(VorbisFile):
         def __init__(self, path):
-            self.vf = vorbis.OggVorbis_File()
-            error = vorbis.ov_fopen(path, ctypes.byref(self.vf))
-            if error != 0:
-                raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
-                           
-            info = vorbis.ov_info(ctypes.byref(self.vf), -1)
-
-            self.channels = info.contents.channels
-
-            self.frequency = info.contents.rate
-
-            self.array = (ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))()
-
-            self.buffer_ = ctypes.cast(ctypes.pointer(self.array), ctypes.c_char_p)
-
-            self.bitstream = ctypes.c_int()
-            self.bitstream_pointer = ctypes.pointer(self.bitstream)
-
+            print("DeprecationWarning: VorbisFileStream won't be supported in a future update", file=sys.stderr)
+            super().__init__(path)
             self.exists = True
 
         def __del__(self):
             if self.exists:
-                vorbis.ov_clear(ctypes.byref(self.vf))
+                self.close()
             self.exists = False
 
         def clean_up(self):
-            vorbis.ov_clear(ctypes.byref(self.vf))
+            self.close()
 
             self.exists = False
 
@@ -442,25 +433,17 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             """get_buffer() -> bytesBuffer, bufferLength"""
             if not self.exists:
                 return None
-            buffer = []
-            total_bytes_written = 0
 
-            new_bytes = 1
+            read = self.read(PYOGG_STREAM_BUFFER_SIZE*self.channels, True)
+
+            out = read.get_data(AudioData.INTERLEAVED_BYTES_16BIT) if read else None
             
-            while new_bytes and total_bytes_written < PYOGG_STREAM_BUFFER_SIZE*self.channels:
-                new_bytes = vorbis.ov_read(ctypes.byref(self.vf), self.buffer_, PYOGG_STREAM_BUFFER_SIZE*self.channels - total_bytes_written, 0, 2, 1, self.bitstream_pointer)
-                
-                buffer.append(self.array.raw[:new_bytes])
-
-                total_bytes_written += new_bytes
-
-            out_buffer = b"".join(buffer)
-
-            if total_bytes_written == 0:
+            if not out:
                 self.clean_up()
-                return(None)
+                return None
 
-            return(out_buffer, total_bytes_written)
+            return (out, len(out))
+        
 else:
     class VorbisFile:
         def __init__(*args, **kw):
