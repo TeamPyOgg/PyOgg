@@ -28,7 +28,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.6.11a1',
+    version='0.6.12a1',
 
     description='Xiph.org\'s Ogg Vorbis, Opus and FLAC for Python',
     

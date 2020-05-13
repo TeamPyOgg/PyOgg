@@ -169,6 +169,7 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
                     ("localstore", c_void_p),
                     ("localtop", c_long),
                     ("localalloc", c_long),
+                    ("totaluse", c_long),
                     ("reap", POINTER(alloc_chain)),
 
                     ("glue_bits", c_long),

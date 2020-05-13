@@ -12,3 +12,5 @@ dist/
 tests/
 PyOgg.egg-info/
 *.bat
+*.zip
+*.wav
