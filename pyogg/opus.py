@@ -560,6 +560,12 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     def opus_multistream_packet_unpad(data, len, nb_streams):
         return libopus.opus_multistream_packet_unpad(data, len, nb_streams)
       
+    libopus.opus_get_version_string.restype = c_char_p
+    libopus.opus_get_version_string.argtypes = None
+
+    def opus_get_version_string():
+        return libopus.opus_get_version_string()
+
     # /opus
 
     # opus_multistream
