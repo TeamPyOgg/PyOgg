@@ -175,6 +175,24 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             self.frequency = 48000
 
+        def as_array(self):
+            """Returns the buffer as a NumPy array with the correct shape, where
+            the shape is in units of (number of samples per channel,
+            number of channels).
+            """
+
+            import numpy
+
+            bytes_per_sample = ctypes.sizeof(opus.opus_int16)
+
+            return numpy.ctypeslib.as_array(
+                self.buffer,
+                (self.buffer_length
+                 // bytes_per_sample
+                 // self.channels,
+                 self.channels)
+            )
+
     class OpusFileStream:
         def __init__(self, path):
             error = ctypes.c_int()
