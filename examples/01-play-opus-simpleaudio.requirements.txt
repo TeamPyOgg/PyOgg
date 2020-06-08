@@ -1,0 +1,3 @@
+pyogg
+simpleaudio
+numpy
