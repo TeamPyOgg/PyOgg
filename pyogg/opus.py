@@ -1218,7 +1218,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
             return libopusenc.ope_encoder_write_float(enc, pcm, samples_per_channel)
 
         libopusenc.ope_encoder_write.restype = c_int
-        libopusenc.ope_encoder_write.argtypes = [ooe_p, c_float_p, c_int]
+        libopusenc.ope_encoder_write.argtypes = [ooe_p, opus_int16_p, c_int]
 
         def ope_encoder_write(enc, pcm, samples_per_channel):
             return libopusenc.ope_encoder_write(enc, pcm, samples_per_channel)
