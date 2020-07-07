@@ -7,6 +7,10 @@ It comes bundled with the required dynamic libraries (.dll) in the Windows WHEEL
 The required libraries include the OGG library (e.g. libogg.dll) and at least either OGG Opus' libraries (e.g. libopus.dll, libopusfile.dll) and / or OGG Vorbis' libraries (e.g. libvorbis.dll, libvorbisfile.dll) 
 to support Opus and Vorbis respectively, or the FLAC C library (e.g. libFLAC.dll) for FLAC support.
 
+Ensure that you have the "wheel" package installed before installing PyOgg, in order to have the Windows DLLs included in the PyOgg installation:
+
+        pip install wheel
+
 You can install PyOgg using PyPI.
 	
 	pip install PyOgg
