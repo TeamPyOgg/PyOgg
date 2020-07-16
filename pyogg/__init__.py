@@ -272,15 +272,39 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
         #
 
         def set_channels(self, n):
-            """Set the number of channels."""
-            self._channels = n
+            """Set the number of channels.
+
+            The number of channels must be between 1 and 255.  Only
+            values between 1 and 8 are currently well-defined in the
+            Opus specification.
+
+            """
+            if self._encoder is None:
+                if n < 0 or n > 255:
+                    raise PyOggError(
+                        "Invalid number of channels in call to "+
+                        "set_channels()"
+                    )
+                self._channels = n
+            else:
+                raise PyOggError(
+                    "Cannot set the number of channels.  Perhaps "+
+                    "encode() was called before set_channels()?"
+                )
 
         def set_sampling_frequency(self, samples_per_second):
             """Set the number of samples (per channel) per second.
 
             This must be one of 8000, 12000, 16000, 24000, or 48000.
             """
-            self._samples_per_second = samples_per_second
+            if self._encoder is None:
+                self._samples_per_second = samples_per_second
+            else:
+                raise PyOggError(
+                    "Cannot set sampling frequency.  "+
+                    "Perhaps encode() was called before "+
+                    "set_sampling_frequency()?"
+                )
 
         def set_application(self, application):
             """Set the encoding mode.
@@ -307,6 +331,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             newly initialized encoder because it changes the codec
             delay.
             """
+            if self._encoder is not None:
+                raise PyOggError(
+                    "Cannot set application.  Perhaps encode() "+
+                    "was called before set_applicaiton()?"
+                )
             if application == "voip":
                 self._application = opus.OPUS_APPLICATION_VOIP
             elif application == "audio":
@@ -318,7 +347,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                     "The application specification '{:s}' ".format(application)+
                     "wasn't one of the accepted values."
                 )
-
+            
         def set_max_bytes_per_frame(self, max_bytes):
             """Set the maximum number of bytes in an encoded frame.
 
@@ -338,12 +367,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             )
             
         def encode(self, pcm_bytes):
-
             """Encodes PCM data into an Opus frame.
 
             pcm_bytes must be formatted as bytes, with each sample
-            taking two bytes (interleaved left, then right channels if
-            in stereo).
+            taking two bytes (signed 16-bit integers; interleaved
+            left, then right channels if in stereo).
 
             """
             # If we haven't already created an encoder, do so now
@@ -398,7 +426,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             # Extract just the valid data as bytes
             return bytes(self._output_buffer[:result])
-                
                 
         
         #
@@ -469,8 +496,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             # Return our newly-created encoder
             return encoder
-            
-            
+
+        
+    class OpusDecoder:
+        def __init__(self):
+            pass
 
 
     class OggOpusWriter:
