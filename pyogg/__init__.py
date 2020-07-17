@@ -1,4 +1,6 @@
+import builtins
 import ctypes
+import random
 from . import ogg
 from .ogg import PyOggError, PYOGG_OGG_AVAIL
 
@@ -267,6 +269,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # https://opus-codec.org/docs/opus_api-1.3.1/group__opus__encoder.html
             self.set_max_bytes_per_frame(4000)
 
+        # TODO: Check if there is clean up that we need to do when
+        # closing an encoder.
+            
         #
         # User visible methods
         #
@@ -520,6 +525,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             self._pcm_buffer_ptr = None
             self._pcm_buffer_size_int = None
 
+        # TODO: Check if there is clean up that we need to do when
+        # closing a decoder.
+        
         #
         # User visible methods
         #
@@ -744,9 +752,117 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             return decoder
 
 
-    class OggOpusWriter:
-        """Encodes PCM data into an OggOpus file.""" 
+    class OggOpusWriter(OpusEncoder):
+        """Encodes PCM data into an OggOpus file."""
 
+        def __init__(self, f):
+            """Construct an OggOpusWriter.
+
+            f may be either a string giving the path to the file, or
+            an already-opened file handle.
+
+            If f is an already-opened file handle, then it is the
+            user's responsibility to close the file when they are
+            finished with it.
+
+            """
+            super()
+            self._i_opened_the_file = None
+            if isinstance(f, str):
+                f = builtins.open(f, 'wb')
+                self._i_opened_the_file = f
+            # else, assume it is an open file object already
+            try:
+                self.initfp(f)
+            except:
+                if self._i_opened_the_file:
+                    f.close()
+                raise
+
+            # Create a new stream state with a random serial number
+            self._stream_state = self.create_stream_state()
+
+            # Create a packet (reused for each pass)
+            self._ogg_packet = ogg.ogg_packet()
+
+            # Create a page (reused for each pass)
+            self._ogg_page = ogg.ogg_page()
+            
+            # Flag to indicate the start of stream
+            self._start_of_stream = 1
+
+            # Flag to indicate if the headers have been written
+            self._headers_written = False
+
+        #
+        # User visible methods
+        #
+
+        def encode(self, pcm_bytes):
+            """Encode the PCM data as Opus packets wrapped in an Ogg stream.
+
+            """
+            # If we haven't already created an encoder, do so now
+            if self._encoder is None:
+                self._encoder = self._create_encoder()
+
+            # If we haven't already written out the headers, do so now
+            if not self._headers_written:
+                self._write_headers()
+                
+            
+
+        #
+        # Internal methods
+        #
+
+        def _create_random_serial_no(self):
+            sizeof_c_int = ctypes.sizeof(ctypes.c_int)
+            min_int = -2**(sizeof_c_int*8-1)
+            max_int = 2**(sizeof_c_int*8-1)-1
+            serial_no = ctypes.c_int(random.randint(min_int, max_int))
+
+            return serial_no
+
+        def _create_stream_state(self):
+            # Create a random serial number
+            serial_no = self._create_random_serial_no()
+
+            # Create an ogg_stream_state
+            ogg_stream_state = ogg.ogg_stream_state()
+
+            # Initialise the stream state
+            ogg.ogg_stream_init(
+                ctypes.pointer(ogg_stream_state),
+                serial_no
+            )
+
+            return ogg_stream_state
+
+        def _write_headers(self):
+            # Obtain the algorithmic delay of the Opus encoder.  See
+            # page 27 of https://tools.ietf.org/html/rfc7845
+            delay = opus.opus_int32()
+            result = opus.opus_encoder_ctl(
+                encoder,
+                opus.OPUS_GET_LOOKAHEAD_REQUEST,
+                ctypes.pointer(delay)
+            )
+            if result != opus.OPUS_OK:
+                raise PyOggError(
+                    "Failed to obtain the algorithmic delay of "+
+                    "the Opus encoder: "+
+                    opus.opus_strerror(error).decode("utf")
+                )
+            delay_samples = delay.value
+
+            # Create the identification header
+            id_header = opus.make_identification_header(
+                pre_skip = delay_samples
+            )
+
+            XXX
+            
 else:
     class OpusFile:
         def __init__(*args, **kw):
