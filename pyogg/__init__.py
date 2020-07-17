@@ -782,6 +782,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             # Create a packet (reused for each pass)
             self._ogg_packet = ogg.ogg_packet()
+            self._packet_valid = False
 
             # Create a page (reused for each pass)
             self._ogg_page = ogg.ogg_page()
@@ -796,8 +797,12 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # Flag to indicate if the headers have been written
             self._headers_written = False
 
-        # TODO: Close the file if we opened it
-            
+        def __del__(self):
+            self.close()
+
+            if self._i_opened_the_file:
+                self._file.close()
+        
         #
         # User visible methods
         #
@@ -814,7 +819,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             if not self._headers_written:
                 self._write_headers()
 
-            # Increase the number of samples
+            # If the current packet is valid, write it into the stream
+            if self._packet_valid:
+                self._write_packet()
+                
+            # Increase the count of the number of samples
             self._count_samples += (
                 len(pcm_bytes)
                 // ctypes.sizeof(opus.opus_int16)
@@ -841,24 +850,19 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # Increase the number of packets
             self._count_packets += 1
 
-            # Place the packet in to the stream
-            result = ogg.ogg_stream_packetin(
-                self._stream_state,
-                self._ogg_packet
-            )
+            # Mark the packet as valid
+            self._packet_valid = True
 
-            # Check for errors
-            if result != 0:
-                raise PyOggError(
-                    "Error while placing packet in Ogg stream"
-                )
+        def close(self):
+            # The current packet must be the end of the stream, update
+            # the packet's details
+            self._ogg_packet.e_o_s = 1
 
-            # Write out pages to file
-            while ogg.ogg_stream_pageout(
-                    ctypes.pointer(self._stream_state),
-                    ctypes.pointer(self._ogg_page)) != 0:
-                self._write_page()
+            # Write the packet to the stream
+            self._write_packet()
 
+            # Flush the stream of any unwritten pages
+            self._flush()
                 
         #
         # Internal methods
@@ -916,7 +920,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             return signature+data
                    
-        def _write_identification_header(self):
+        def _write_identification_header_packet(self):
             # Obtain the algorithmic delay of the Opus encoder.  See
             # page 27 of https://tools.ietf.org/html/rfc7845
             delay = opus.opus_int32()
@@ -977,7 +981,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 + user_comments_length
             )
 
-        def _write_comment_header(self):
+        def _write_comment_header_packet(self):
             # Specify the comment header
             comment_header = self._make_comment_header()
 
@@ -1002,18 +1006,25 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 )
 
         def _write_page(self):
-            # Write page
+            """ Write page to file """
             self._file.write(
                 bytes(self._ogg_page.header[0:self._ogg_page.header_len])
             )
             self._file.write(
                 bytes(self._ogg_page.body[0:self._ogg_page.body_len])
             )
-            
+
+        def _flush(self):
+            """ Flush all pages to the file. """
+            while ogg.ogg_stream_flush(
+                    ctypes.pointer(self._stream_state),
+                    ctypes.pointer(self._ogg_page)) != 0:
+                self._write_page()
             
         def _write_headers(self):
-            self._write_identification_header()
-            self._write_comment_header()
+            """ Write the two Opus header packets. """
+            self._write_identification_header_packet()
+            self._write_comment_header_packet()
 
             # Store that the headers have been written
             self._headers_written = True
@@ -1022,11 +1033,26 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # the only packets to appear on the first page.  If this
             # is not done, the file cannot be read by the library
             # opusfile.
-            while ogg.ogg_stream_flush(
+            self._flush()
+
+        def _write_packet(self):
+            # Place the packet in to the stream
+            result = ogg.ogg_stream_packetin(
+                self._stream_state,
+                self._ogg_packet
+            )
+
+            # Check for errors
+            if result != 0:
+                raise PyOggError(
+                    "Error while placing packet in Ogg stream"
+                )
+
+            # Write out pages to file
+            while ogg.ogg_stream_pageout(
                     ctypes.pointer(self._stream_state),
                     ctypes.pointer(self._ogg_page)) != 0:
                 self._write_page()
-            
             
 else:
     class OpusFile:
