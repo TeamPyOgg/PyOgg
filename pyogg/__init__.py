@@ -815,10 +815,13 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             if self._encoder is None:
                 self._encoder = self._create_encoder()
 
-            # If we haven't already written out the headers, do so now
+            # If we haven't already written out the headers, do so
+            # now.  Then, write a frame of silence to warm up the
+            # encoder.
             if not self._headers_written:
-                self._write_headers()
-
+                pre_skip = self._write_headers()
+                self._write_silence(pre_skip)
+                
             # If the current packet is valid, write it into the stream
             if self._packet_valid:
                 self._write_packet()
@@ -937,9 +940,26 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 )
             delay_samples = delay.value
 
+            # Extra samples are recommended.  See
+            # https://tools.ietf.org/html/rfc7845#page-27
+            extra_samples = 120
+
+            # We will just fill a whole frame with silence.  Calculate
+            # the minimum frame length, which we'll use as the
+            # pre-skip.
+            frame_durations = [2.5, 5, 10, 20, 40, 60] # milliseconds
+            frame_lengths = [
+                x * self._samples_per_second // 1000
+                for x in frame_durations
+            ]
+            for frame_length in frame_lengths:
+                if frame_length > delay_samples + extra_samples:
+                    pre_skip = frame_length
+                    break
+
             # Create the identification header
             id_header = self._make_identification_header(
-                pre_skip = delay_samples
+                pre_skip = pre_skip
             )
 
             # Specify the packet containing the identification header
@@ -961,6 +981,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 raise PyOggError(
                     "Failed to write Opus identification header"
                 )
+
+            return pre_skip
 
         def _make_comment_header(self):
             """Make the OggOpus comment header.
@@ -1022,8 +1044,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 self._write_page()
             
         def _write_headers(self):
-            """ Write the two Opus header packets. """
-            self._write_identification_header_packet()
+            """ Write the two Opus header packets."""
+            pre_skip = self._write_identification_header_packet()
             self._write_comment_header_packet()
 
             # Store that the headers have been written
@@ -1034,6 +1056,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # is not done, the file cannot be read by the library
             # opusfile.
             self._flush()
+
+            return pre_skip
 
         def _write_packet(self):
             # Place the packet in to the stream
@@ -1053,6 +1077,17 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                     ctypes.pointer(self._stream_state),
                     ctypes.pointer(self._ogg_page)) != 0:
                 self._write_page()
+
+        def _write_silence(self, samples):
+            """ Write a frame of silence. """
+            silence_length = (
+                samples
+                * self._channels
+                * ctypes.sizeof(opus.opus_int16)
+            )
+            silence_pcm = b"\x00" * silence_length
+            self.encode(silence_pcm)
+            
             
 else:
     class OpusFile:
