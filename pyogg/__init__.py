@@ -252,7 +252,20 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             opus.op_free(self.of)
 
-            
+else:
+    class OpusFile:
+        def __init__(*args, **kw):
+            if not PYOGG_OGG_AVAIL:
+                raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+            raise PyOggError("The Opus libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+
+    class OpusFileStream:
+        def __init__(*args, **kw):
+            if not PYOGG_OGG_AVAIL:
+                raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+            raise PyOggError("The Opus libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+
+if PYOGG_OPUS_AVAIL:
     class OpusEncoder:
         """Encodes PCM data into Opus frames."""
         def __init__(self):
@@ -752,7 +765,16 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # Return our newly-created decoder
             return decoder
 
+else:
+    class OpusEncoder:
+        def __init__(*args, **kw):
+            raise PyOggError("The Opus library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
+    class OpusDecoder:
+        def __init__(*args, **kw):
+            raise PyOggError("The Opus library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+
+if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):        
     class OggOpusWriter(OpusEncoder):
         """Encodes PCM data into an OggOpus file."""
 
@@ -1088,19 +1110,13 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             silence_pcm = b"\x00" * silence_length
             self.encode(silence_pcm)
             
-            
 else:
-    class OpusFile:
+    class OggOpusWriter:
         def __init__(*args, **kw):
             if not PYOGG_OGG_AVAIL:
                 raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
-            raise PyOggError("The Opus libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
-
-    class OpusFileStream:
-        def __init__(*args, **kw):
-            if not PYOGG_OGG_AVAIL:
-                raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
-            raise PyOggError("The Opus libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+            raise PyOggError("The Opus library was't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+        
 
 if PYOGG_FLAC_AVAIL:
     class FlacFile:
