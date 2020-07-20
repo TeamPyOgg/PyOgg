@@ -545,7 +545,7 @@ if PYOGG_OPUS_AVAIL:
             super().__init__()
             
             self._frame_size_ms = None
-            self._frame_size = None
+            self._frame_size_bytes = None
             
             # To reduce copying, buffer is a double-ended queue of
             # bytes-objects
@@ -628,10 +628,11 @@ if PYOGG_OPUS_AVAIL:
                 or self._samples_per_second is None):
                 return
             
-            self._frame_size = (
+            self._frame_size_bytes = (
                 self._frame_size_ms
                 * self._samples_per_second
                 // 1000
+                * ctypes.sizeof(opus.opus_int16)
             )
                 
 
@@ -639,7 +640,7 @@ if PYOGG_OPUS_AVAIL:
             next_frame = bytes()
             
             # Ensure frame size has been specified
-            if self._frame_size is None:
+            if self._frame_size_bytes is None:
                 raise PyOggError(
                     "Desired frame size hasn't been set.  Perhaps "+
                     "encode() was called before set_frame_size() "+
@@ -648,7 +649,7 @@ if PYOGG_OPUS_AVAIL:
 
             # Check if there's insufficient data in the buffer to fill a
             # frame.
-            if self._frame_size > self._buffer_size:
+            if self._frame_size_bytes > self._buffer_size:
                 if len(self._buffer) == 0:
                     # No data at all in buffer
                     return None
@@ -658,7 +659,7 @@ if PYOGG_OPUS_AVAIL:
                         next_frame += self._buffer.popleft()
                     self._buffer_size = 0
                     # Fill remaining of frame with silence
-                    bytes_remaining = self._frame_size - len(next_frame)
+                    bytes_remaining = self._frame_size_bytes - len(next_frame)
                     next_frame += b'\x00' * bytes_remaining
                     return next_frame
                 else:
@@ -666,7 +667,7 @@ if PYOGG_OPUS_AVAIL:
                     # adding silence
                     return None
 
-            bytes_remaining = self._frame_size
+            bytes_remaining = self._frame_size_bytes
             while bytes_remaining > 0:
                 if len(self._buffer[0]) <= bytes_remaining:
                     # Take the whole first item
