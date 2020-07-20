@@ -585,7 +585,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             silence to make a complete final frame.
 
             """
-            print(f"encode called with {len(pcm_bytes)} bytes of PCM")
             self._buffer.append(pcm_bytes)
             self._buffer_size += len(pcm_bytes)
 
@@ -624,7 +623,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 
 
         def _get_next_frame(self, add_silence=False):
-            print("Getting next frame from buffered PCM")
             next_frame = bytes()
             
             # Ensure frame size has been specified
@@ -638,40 +636,28 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # Check if there's insufficient data in the buffer to fill a
             # frame.
             if self._frame_size > self._buffer_size:
-                print("Insufficient data to fill a frame")
                 if len(self._buffer) == 0:
-                    print("Buffer completely empty")
                     # No data at all in buffer
                     return None
                 if add_silence:
-                    print("Adding silence")
-                    print("len(self._buffer):", len(self._buffer))
                     # Get all remaining data
                     while len(self._buffer) != 0:
                         next_frame += self._buffer.popleft()
                     self._buffer_size = 0
                     # Fill remaining of frame with silence
-                    print("self._frame_size:", self._frame_size)
-                    print("len(next_frame):", len(next_frame))
                     bytes_remaining = self._frame_size - len(next_frame)
-                    print("bytes_remaining:", bytes_remaining)
                     next_frame += b'\x00' * bytes_remaining
-                    print("len(next_frame):", len(next_frame))
                     return next_frame
                 else:
-                    print("We're not adding silence, so return None")
                     # Insufficient data to fill a frame and we're not
                     # adding silence
                     return None
 
             bytes_remaining = self._frame_size
             while bytes_remaining > 0:
-                print("len(self._buffer[0]):",len(self._buffer[0]))
                 if len(self._buffer[0]) <= bytes_remaining:
-                    print("Taking all of first item in buffer")
                     # Take the whole first item
                     buffer_ = self._buffer.popleft()
-                    print("len(buffer_):", len(buffer_))
                     next_frame += buffer_
                     bytes_remaining -= len(buffer_)
                     self._buffer_size -= len(buffer_)
@@ -683,9 +669,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                     # remaining data, we could just update an index
                     # saying where we were up to in regards to the
                     # first entry of the buffer.
-                    print("items in buffer before pop:", len(self._buffer))
                     buffer_ = self._buffer.popleft()
-                    print("items in buffer after pop:", len(self._buffer))
                     next_frame += buffer_[:bytes_remaining]
                     self._buffer_size -= bytes_remaining
                     # And put the unused part back into the buffer
