@@ -1,4 +1,6 @@
 import builtins
+import collections
+import copy
 import ctypes
 import random
 import struct
@@ -179,9 +181,14 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             self.frequency = 48000
 
         def as_array(self):
-            """Returns the buffer as a NumPy array with the correct shape, where
-            the shape is in units of (number of samples per channel,
-            number of channels).
+            """Returns the buffer as a NumPy array.
+
+            The shape of the returned array is in units of (number of
+            samples per channel, number of channels).
+
+            The buffer is not copied, but rather the memory is shared
+            with the NumPy array.
+
             """
 
             import numpy
@@ -195,6 +202,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                  // self.channels,
                  self.channels)
             )
+
+        def as_bytes(self):
+            bytes(self.buffer)
 
     class OpusFileStream:
         def __init__(self, path):
@@ -412,7 +422,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             )
 
             # Check that we have a valid frame size
-            if frame_duration not in [25, 50, 100, 200, 400, 600]:
+            if int(frame_duration) not in [25, 50, 100, 200, 400, 600]:
                 raise PyOggError(
                     "The effective frame duration ({:.1f} ms) "
                     .format(frame_duration/10)+
@@ -517,6 +527,175 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             return encoder
 
         
+    class OpusBufferedEncoder(OpusEncoder):
+        def __init__(self):
+            super().__init__()
+            
+            self._frame_size_ms = None
+            self._frame_size = None
+            
+            # To reduce copying, buffer is a double-ended queue of
+            # bytes-objects
+            self._buffer = collections.deque()
+            self._buffer_size = 0
+
+            
+        def set_frame_size(self, frame_size):
+            """ Set the desired frame duration (in milliseconds).
+
+            Valid options are 2.5, 5, 10, 20, 40, or 60ms.
+
+            """
+
+            # Ensure the frame size is valid.  Compare frame size in
+            # units of 0.1ms to avoid floating point comparison
+            if int(frame_size*10) not in [25, 50, 100, 200, 400, 600]:
+                raise PyOggError(
+                    "Frame size ({:f}) not one of ".format(frame_size)+
+                    "the acceptable values"
+                )
+            
+            self._frame_size_ms = frame_size
+
+            self._calc_frame_size()
+
+            
+        def set_sampling_frequency(self, samples_per_second):
+            super().set_sampling_frequency(samples_per_second)
+            self._calc_frame_size()
+
+            
+        def encode(self, pcm_bytes, flush=False):
+            """Produces Opus-encoded packets from buffered PCM.
+
+            First, pcm_bytes are appended to the end of the internal buffer.
+
+            Then, while there are sufficient bytes in the buffer,
+            frames will be encoded.
+
+            This method returns a list, where each item in the list is
+            an Opus-encoded frame stored as a bytes-object.
+
+            If insufficient samples are passed in for the specified
+            frame size, then an empty list will be returned.
+
+            If flush is set to True, the buffer will be entirely
+            emptied and, in the case that there remains PCM for only a
+            partial final frame, the PCM will be completed with
+            silence to make a complete final frame.
+
+            """
+            print(f"encode called with {len(pcm_bytes)} bytes of PCM")
+            self._buffer.append(pcm_bytes)
+            self._buffer_size += len(pcm_bytes)
+
+            results = []
+            while True:
+                # Get PCM from the buffer
+                pcm_to_encode = self._get_next_frame(add_silence=flush)
+
+                # Check if we've sufficient bytes in the buffer
+                if pcm_to_encode is None:
+                    break
+
+                # Encode the PCM
+                encoded_packet = super().encode(pcm_to_encode)
+
+                # Create a deep copy (otherwise the contents will be
+                # overwritten if there is a next call to encode
+                result = copy.deepcopy(encoded_packet)
+
+                # Append the copy of the encoded packet
+                results.append(result)
+
+            return results
+
+                
+        def _calc_frame_size(self):
+            if (self._frame_size_ms is None
+                or self._samples_per_second is None):
+                return
+            
+            self._frame_size = (
+                self._frame_size_ms
+                * self._samples_per_second
+                // 1000
+            )
+                
+
+        def _get_next_frame(self, add_silence=False):
+            print("Getting next frame from buffered PCM")
+            next_frame = bytes()
+            
+            # Ensure frame size has been specified
+            if self._frame_size is None:
+                raise PyOggError(
+                    "Desired frame size hasn't been set.  Perhaps "+
+                    "encode() was called before set_frame_size() "+
+                    "and set_sampling_frequency()?"
+                )
+
+            # Check if there's insufficient data in the buffer to fill a
+            # frame.
+            if self._frame_size > self._buffer_size:
+                print("Insufficient data to fill a frame")
+                if len(self._buffer) == 0:
+                    print("Buffer completely empty")
+                    # No data at all in buffer
+                    return None
+                if add_silence:
+                    print("Adding silence")
+                    print("len(self._buffer):", len(self._buffer))
+                    # Get all remaining data
+                    while len(self._buffer) != 0:
+                        next_frame += self._buffer.popleft()
+                    self._buffer_size = 0
+                    # Fill remaining of frame with silence
+                    print("self._frame_size:", self._frame_size)
+                    print("len(next_frame):", len(next_frame))
+                    bytes_remaining = self._frame_size - len(next_frame)
+                    print("bytes_remaining:", bytes_remaining)
+                    next_frame += b'\x00' * bytes_remaining
+                    print("len(next_frame):", len(next_frame))
+                    return next_frame
+                else:
+                    print("We're not adding silence, so return None")
+                    # Insufficient data to fill a frame and we're not
+                    # adding silence
+                    return None
+
+            bytes_remaining = self._frame_size
+            while bytes_remaining > 0:
+                print("len(self._buffer[0]):",len(self._buffer[0]))
+                if len(self._buffer[0]) <= bytes_remaining:
+                    print("Taking all of first item in buffer")
+                    # Take the whole first item
+                    buffer_ = self._buffer.popleft()
+                    print("len(buffer_):", len(buffer_))
+                    next_frame += buffer_
+                    bytes_remaining -= len(buffer_)
+                    self._buffer_size -= len(buffer_)
+                else:
+                    # Take only part of the buffer
+
+                    # TODO: This could be more efficiently
+                    # implemented.  Rather than appending back the
+                    # remaining data, we could just update an index
+                    # saying where we were up to in regards to the
+                    # first entry of the buffer.
+                    print("items in buffer before pop:", len(self._buffer))
+                    buffer_ = self._buffer.popleft()
+                    print("items in buffer after pop:", len(self._buffer))
+                    next_frame += buffer_[:bytes_remaining]
+                    self._buffer_size -= bytes_remaining
+                    # And put the unused part back into the buffer
+                    self._buffer.appendleft(buffer_[bytes_remaining:])
+                    bytes_remaining = 0
+
+            return next_frame
+                    
+                    
+        
     class OpusDecoder:
         def __init__(self):
             self._decoder = None
@@ -534,6 +713,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
         #
 
         def set_channels(self, n):
+
             """Set the number of channels.
 
             n must be either 1 or 2.
@@ -642,12 +822,18 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             return bytes(self._pcm_buffer)[:end_valid_data]
 
 
-        def decode_missing_packet(frame_duration):
+        def decode_missing_packet(self, frame_duration):
+            """ Obtain PCM data despite missing a frame.
+
+            frame_duration is in milliseconds.
+
+            """
+            
             # Consider frame duration in units of 0.1ms in order to
             # avoid floating-point comparisons.
             if int(frame_duration*10) not in [25, 50, 100, 200, 400, 600]:
                 raise PyOggError(
-                    "Frame duration is not one of the accepted values"
+                    "Frame duration ({:f}) is not one of the accepted values".format(frame_duration)
                 )
 
             # Calculate frame size
@@ -659,7 +845,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             # Store frame size as int
             frame_size_int = ctypes.c_int(frame_size)
-
+            
             # Decode missing packet
             result = opus.opus_decode(
                 self._decoder,
@@ -670,6 +856,21 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 0 # TODO: What is this Forward Error Correction about?
             )
                 
+            # Check for any errors
+            if result < 0:
+                raise PyOggError(
+                    "An error occurred while decoding an Opus-encoded "+
+                    "packet: "+
+                    opus.opus_strerror(error).decode("utf")
+                )
+
+            # Extract just the valid data as bytes
+            end_valid_data = (
+                result
+                * ctypes.sizeof(opus.opus_int16)
+                * self._channels
+            )
+            return bytes(self._pcm_buffer)[:end_valid_data]
         
         #
         # Internal methods
