@@ -1,7 +1,9 @@
 import pyogg
 
 print("Testing the availability of libraries used by PyOgg.")
-print("If there are libraries that are not available, PyOgg's abilities will be limited.\n")
+print("")
+print("If there are libraries that are not available, PyOgg's abilities will")
+print("be limited.\n")
 
 libraries_available = {
     "Ogg": pyogg.PYOGG_OGG_AVAIL,
@@ -15,7 +17,7 @@ libraries_available = {
 }
 
 if all(libraries_available.values()):
-    print("All libraries used by PyOgg are available")
+    print("All libraries used by PyOgg were available.")
 
 else:
     print("The following libraries were not available:")
@@ -41,3 +43,10 @@ for library_name, lib in libraries.items():
     if lib is not None:
         filename = lib._name
     print(" - "+library_name+": "+filename)
+
+print("\nIn Linux, from Python version 3.6, the value of the environment variable")
+print("LD_LIBRARY_PATH is used when searching for libraries, if a library cannot")
+print("be found by any other means.")
+print("")
+print("For more information on the process used to locate shared libraries, see")
+print("https://docs.python.org/3/library/ctypes.html#finding-shared-libraries")
