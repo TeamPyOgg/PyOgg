@@ -124,13 +124,18 @@ from traceback import print_exc as _print_exc
 
 from .ogg import *
 
-from .library_loader import ExternalLibrary, ExternalLibraryError
+from .library_loader import Library, ExternalLibrary, ExternalLibraryError
 
 __here = os.getcwd()
 libopus = None
 
 try:
-    libopus = ExternalLibrary.load("opus", tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
+    names = {
+        "win32": "opus.dll",
+        "darwin": "libopus.dylib",
+        "external": "opus"
+    }
+    libopus = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
 except ExternalLibraryError:
     pass
 except:
@@ -139,7 +144,12 @@ except:
 libopusfile = None
 
 try:
-    libopusfile = ExternalLibrary.load("opusfile", tests = [lambda lib: hasattr(lib, "opus_head_parse")])
+    names = {
+        "win32": "opusfile.dll",
+        "darwin": "libopusfile.dylib",
+        "external": "opusfile"
+    }
+    libopusfile = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_head_parse")])
 except ExternalLibraryError:
     pass
 except:

@@ -29,6 +29,41 @@ _loaded_libraries = {}
 
 run_tests = lambda lib, tests: [f(lib) for f in tests]
 
+
+class Library:
+    @staticmethod
+    def load(names, paths = None, tests = []):
+        lib = InternalLibrary.load(names, tests)
+        if lib is None:
+            lib = ExternalLibrary.load(names["external"], paths, tests)
+        return lib
+        
+
+class InternalLibrary:
+    def load(names, tests):
+        # Get the name of the library for the current platform
+        try:
+            name = names[sys.platform]
+        except KeyError:
+            return None
+
+        # Attempt to load the library from here
+        path = _here + "/" + name 
+        try:
+            print(f"Trying '{path}'")
+            lib = ctypes.CDLL(path)
+        except OSError as e:
+            print(str(e))
+            return None
+
+        # Check that the library passes the tests
+        if tests and all(run_tests(lib, tests)):
+            print("Found internal library")
+            return lib
+        print("Test failed!")
+        return None
+        
+
 class ExternalLibrary:
     @staticmethod
     def load(name, paths = None, tests = []):

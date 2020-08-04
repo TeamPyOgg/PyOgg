@@ -28,7 +28,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.6.14a1',
+    version='0.6.14a2',
 
     description='Xiph.org\'s Ogg Vorbis, Opus and FLAC for Python',
     
@@ -87,8 +87,11 @@ setup(
                   'libvorbisfile.dll',
                   'opus.dll',
                   'opusenc.dll',
-                  'opusfile.dll']
-    }
+                  'opusfile.dll',
+                  'libogg.dylib',
+                  'libopus.dylib',
+                  'libopusfile.dylib']
+    },
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
@@ -98,6 +101,9 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
+
+    install_requires=[
+    ]
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

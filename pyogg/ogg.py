@@ -39,7 +39,7 @@ import sys
 from traceback import print_exc as _print_exc
 import os
 
-from .library_loader import ExternalLibrary, ExternalLibraryError
+from .library_loader import Library, ExternalLibrary, ExternalLibraryError
 
 class PyOggError(Exception):
     pass
@@ -59,7 +59,12 @@ __here = os.getcwd()
 libogg = None
 
 try:
-    libogg = ExternalLibrary.load("ogg", tests = [lambda lib: hasattr(lib, "oggpack_writeinit")])
+    names = {
+        "win32": "ogg.dll",
+        "darwin": "libogg.dylib",
+        "external": "ogg"
+    }
+    libogg = Library.load(names, tests = [lambda lib: hasattr(lib, "oggpack_writeinit")])
 except ExternalLibraryError:
     pass
 except:
