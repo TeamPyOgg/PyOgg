@@ -176,9 +176,16 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             self.frequency = 48000
 
         def as_array(self):
-            """Returns the buffer as a NumPy array with the correct shape, where
-            the shape is in units of (number of samples per channel,
-            number of channels).
+            """Returns the buffer as a NumPy array.
+
+            The shape of the returned array is in units of (number of
+            samples per channel, number of channels).
+
+            The data type is 16-bit signed integers.
+
+            The buffer is not copied, but rather the NumPy array
+            shares the memory with the buffer.
+
             """
 
             import numpy
@@ -195,6 +202,15 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
     class OpusFileStream:
         def __init__(self, path):
+            """Opens an OggOpus file as a stream.
+
+            path should be a string giving the filename of the file to
+            open.  Unicode file names may not work correctly.
+
+            An exception will be raised if the file cannot be opened
+            correctly.
+
+            """ 
             error = ctypes.c_int()
 
             self.of = opus.op_open_file(ogg.to_char_p(path), ctypes.pointer(error))
@@ -208,45 +224,87 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             self.frequency = 48000
 
-            self.bfarr_t = opus.opus_int16*(PYOGG_STREAM_BUFFER_SIZE*self.channels*2)
+            # The buffer size should be (per channel) large enough to
+            # hold 120ms (the largest possible Opus frame) at 48kHz.
+            # See https://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html#ga963c917749335e29bb2b698c1cb20a10
+            self.buffer_size = self.frequency // 1000 * 120 * self.channels
+            self.bfarr_t = opus.opus_int16 * self.buffer_size
+            self.buffer_ptr = ctypes.cast(ctypes.pointer(self.bfarr_t()),opus.opus_int16_p)
 
-            self.buffer = ctypes.cast(ctypes.pointer(self.bfarr_t()),opus.opus_int16_p)
+            self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
 
-            self.ptr = ctypes.cast(ctypes.pointer(self.buffer), ctypes.POINTER(ctypes.c_void_p))
-
-            self.ptr_init = self.ptr.contents.value
 
         def get_buffer(self):
-            if not hasattr(self, 'ptr'):
-                return None
+            """Obtains the next frame of PCM samples.
 
-            samples_read = ctypes.c_int(0)
-            while True:
-                self.ptr.contents.value = self.ptr_init + samples_read.value*self.channels*2
-                ns = opus.op_read(self.of, self.buffer , PYOGG_STREAM_BUFFER_SIZE*self.channels,ogg.c_int_p())
-                if ns == 0:
-                    break
-                samples_read.value += ns
-                if samples_read.value*self.channels*2 + ns >= PYOGG_STREAM_BUFFER_SIZE:
-                    break
+            Returns an array of signed 16-bit integers.  If the file
+            is in stereo, the left and right channels are interleaved.
 
-            if samples_read.value == 0:
+            """
+            # Read the next frame
+            samples_read = opus.op_read(
+                self.of,
+                self.buffer_ptr,
+                self.buffer_size,
+                None
+            )
+
+            # Check for errors
+            if samples_read < 0:
+                raise PyOggError(
+                    "Failed to read OpusFileStream.  Error {:d}".format(samples_read)
+                )
+
+            # Check if we've reached the end of the stream
+            if samples_read == 0:
                 self.clean_up()
                 return None
 
-            self.ptr.contents.value = self.ptr_init
+            # Cast the pointer to opus_int16 to an array of the
+            # correct size
+            result_ptr = ctypes.cast(
+                self.buffer_ptr,
+                ctypes.POINTER(opus.opus_int16 * (samples_read*self.channels))
+            )
 
-            buf = ctypes.pointer(self.bfarr_t())
+            # Return the array of the correct size
+            return result_ptr.contents
 
-            buf[0] = ctypes.cast(self.buffer, ctypes.POINTER(self.bfarr_t))[0]
+        def get_buffer_as_array(self):
+            """Provides the buffer as a NumPy array.
 
-            return(buf, samples_read.value*self.channels*2)
+            Note that the underlying data type is 16-bit signed
+            integers.
+
+            Does not copy the underlying data.
+
+            """
+            import numpy
+
+            # Read the next samples from the stream
+            buf = self.get_buffer()
+
+            # Check if we've come to the end of the stream
+            if buf is None:
+                return None
+
+            # Get pointer to first element
+            ptr_to_first_element = ctypes.cast(
+                ctypes.pointer(buf),
+                ctypes.POINTER(opus.opus_int16)
+            )
+
+            # Convert to a numpy array and return that array
+            array = numpy.ctypeslib.as_array(
+                buf
+            )
+
+            # Reshape the array and return it
+            return array.reshape(
+                (-1, self.channels)
+            )
 
         def clean_up(self):
-            self.ptr.contents.value = self.ptr_init
-
-            del self.ptr
-
             opus.op_free(self.of)
 
 else:
