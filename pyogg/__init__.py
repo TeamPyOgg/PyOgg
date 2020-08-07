@@ -225,6 +225,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             self.of = opus.op_open_file(ogg.to_char_p(path), ctypes.pointer(error))
 
             if error.value != 0:
+                self.of = None
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
 
             self.channels = opus.op_channel_count(self.of, -1)
@@ -242,12 +243,20 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
 
+        def __del__(self):
+            if self.of is not None:
+                opus.op_free(self.of)
 
         def get_buffer(self):
             """Obtains the next frame of PCM samples.
 
             Returns an array of signed 16-bit integers.  If the file
             is in stereo, the left and right channels are interleaved.
+
+            The array that is returned should be either processed or
+            copied before the next call to get_buffer() or
+            get_buffer_as_array() as the array's memory is reused for
+            each call.
 
             """
             # Read the next frame
@@ -266,7 +275,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             # Check if we've reached the end of the stream
             if samples_read == 0:
-                self.clean_up()
                 return None
 
             # Cast the pointer to opus_int16 to an array of the
@@ -285,7 +293,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             Note that the underlying data type is 16-bit signed
             integers.
 
-            Does not copy the underlying data.
+            Does not copy the underlying data, so the returned array
+            should either be processed or copied before the next call
+            to get_buffer() or get_buffer_as_array().
 
             """
             import numpy
@@ -303,7 +313,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 ctypes.POINTER(opus.opus_int16)
             )
 
-            # Convert to a numpy array and return that array
+            # Convert to a numpy array
             array = numpy.ctypeslib.as_array(
                 buf
             )
@@ -312,9 +322,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             return array.reshape(
                 (-1, self.channels)
             )
-
-        def clean_up(self):
-            opus.op_free(self.of)
 
 else:
     class OpusFile:
@@ -701,8 +708,8 @@ if PYOGG_OPUS_AVAIL:
                     "and set_sampling_frequency()?"
                 )
 
-            # Check if there's insufficient data in the buffer to fill a
-            # frame.
+            # Check if there's insufficient data in the buffer to fill
+            # a frame.
             if self._frame_size_bytes > self._buffer_size:
                 if len(self._buffer) == 0:
                     # No data at all in buffer
@@ -712,7 +719,7 @@ if PYOGG_OPUS_AVAIL:
                     while len(self._buffer) != 0:
                         next_frame += self._buffer.popleft()
                     self._buffer_size = 0
-                    # Fill remaining of frame with silence
+                    # Fill remainder of frame with silence
                     bytes_remaining = self._frame_size_bytes - len(next_frame)
                     next_frame += b'\x00' * bytes_remaining
                     return next_frame
