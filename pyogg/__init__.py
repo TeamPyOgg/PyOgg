@@ -358,7 +358,6 @@ if PYOGG_OPUS_AVAIL:
             self._max_bytes_per_frame = None
             self._output_buffer = None
             self._output_buffer_ptr = None
-            self._discontinuous_transmission = False
 
             # An output buffer of 4,000 bytes is recommended in
             # https://opus-codec.org/docs/opus_api-1.3.1/group__opus__encoder.html
@@ -478,56 +477,7 @@ if PYOGG_OPUS_AVAIL:
                 ctypes.cast(ctypes.pointer(self._output_buffer),
                             ctypes.POINTER(ctypes.c_ubyte))
             )
-
-        def set_discontinuous_transmission(self, value=True):
-            """Set discontinuous transmission (DTX).
-
-            If value is True, discontinuous transmission is enabled.
-
-            """
-            self._discontinuous_transmission = value
-            if self._encoder is not None:
-                self._set_discontinuous_transmission(
-                    self._encoder,
-                    self._discontinuous_transmission
-                )
-
-        def in_discontinuous_transmission(self):
-            """Returns discontinuous transmission (DTX) state.
             
-            Returns whether the last encoded frame was signal (False)
-            or noise (True).  Noise may be either a comfort noise
-            update during DTX or a frame that wasn't encoded because
-            of DTX.
-
-            """
-
-            # Check that we have a valid encoder
-            if self._encoder is None:
-                return None
-
-            # Ctypes storage for DTX state
-            state = opus.opus_int32()
-            
-            # Make the request
-            result = opus.opus_encoder_ctl(
-                self._encoder,
-                opus.OPUS_GET_IN_DTX_REQUEST,
-                ctypes.pointer(state)
-            )
-
-            # Check there wasn't an error
-            if result != opus.OPUS_OK:
-                raise PyOggError(
-                    "Failed to get the value for discontinuous "+
-                    "transmission: "+
-                    opus.opus_strerror(result).decode("utf")
-                )
-
-            # Convert to Boolean
-            return state.value==1
-
-
         def encode(self, pcm_bytes):
             """Encodes PCM data into an Opus frame.
 
@@ -583,7 +533,7 @@ if PYOGG_OPUS_AVAIL:
             if result < 0:
                 raise PyOggError(
                     "An error occurred while encoding to Opus format: "+
-                    opus.opus_strerror(result).decode("utf")
+                    opus.opus_strerror(error).decode("utf")
                 )
 
             # Extract just the valid data as bytes
@@ -594,31 +544,6 @@ if PYOGG_OPUS_AVAIL:
         # Internal methods
         #
 
-        def _set_discontinuous_transmission(self, encoder, value):
-            """Helper to actually set the value for DTX.
-
-            """
-            # Convert value to a ctypes int
-            if value:
-                value_int = ctypes.c_int(1)
-            else:
-                value_int = ctypes.c_int(1)
-
-            # Make the request
-            result = opus.opus_encoder_ctl(
-                encoder,
-                opus.OPUS_SET_DTX_REQUEST,
-                value_int
-            )
-
-            # Check there wasn't an error
-            if result != opus.OPUS_OK:
-                raise PyOggError(
-                    "Failed to set the value for discontinuous "+
-                    "transmission: "+
-                    opus.opus_strerror(result).decode("utf")
-                )
-            
         def _create_encoder(self):
             # To create an encoder, we must first allocate resources for it.
             # We want Python to be responsible for the memory deallocation,
@@ -681,12 +606,6 @@ if PYOGG_OPUS_AVAIL:
                     opus.opus_strerror(error).decode("utf")
                 )
 
-            # Set the value for discontinuous transmission
-            self._set_discontinuous_transmission(
-                encoder,
-                self._discontinuous_transmission
-            )
-            
             # Return our newly-created encoder
             return encoder
 
@@ -959,7 +878,7 @@ if PYOGG_OPUS_AVAIL:
                 raise PyOggError(
                     "An error occurred while decoding an Opus-encoded "+
                     "packet: "+
-                    opus.opus_strerror(result).decode("utf")
+                    opus.opus_strerror(error).decode("utf")
                 )
 
             # Extract just the valid data as bytes
@@ -1010,7 +929,7 @@ if PYOGG_OPUS_AVAIL:
                 raise PyOggError(
                     "An error occurred while decoding an Opus-encoded "+
                     "packet: "+
-                    opus.opus_strerror(result).decode("utf")
+                    opus.opus_strerror(error).decode("utf")
                 )
 
             # Extract just the valid data as bytes
@@ -1020,43 +939,6 @@ if PYOGG_OPUS_AVAIL:
                 * self._channels
             )
             return bytes(self._pcm_buffer)[:end_valid_data]
-
-        
-        def in_discontinuous_transmission(self):
-            """Returns discontinuous transmission (DTX) state.
-            
-            Returns whether the last decoded frame was signal (False)
-            or noise (True).  Noise may be either a comfort noise
-            update during DTX or a frame that wasn't encoded because
-            of DTX.
-
-            """
-
-            # Check that we have a valid decoder
-            if self._decoder is None:
-                return None
-
-            # Ctypes storage for DTX state
-            state = opus.opus_int32()
-            
-            # Make the request
-            result = opus.opus_decoder_ctl(
-                self._decoder,
-                opus.OPUS_GET_IN_DTX_REQUEST,
-                ctypes.pointer(state)
-            )
-
-            # Check there wasn't an error
-            if result != opus.OPUS_OK:
-                raise PyOggError(
-                    "Failed to get the value for discontinuous "+
-                    "transmission: "+
-                    opus.opus_strerror(result).decode("utf")
-                )
-
-            # Convert to Boolean
-            return state.value==1
-
         
         #
         # Internal methods
@@ -1332,7 +1214,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                 raise PyOggError(
                     "Failed to obtain the algorithmic delay of "+
                     "the Opus encoder: "+
-                    opus.opus_strerror(result).decode("utf")
+                    opus.opus_strerror(error).decode("utf")
                 )
             delay_samples = delay.value
 
