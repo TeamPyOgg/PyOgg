@@ -186,6 +186,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             The shape of the returned array is in units of (number of
             samples per channel, number of channels).
 
+
             The data type is 16-bit signed integers.
 
             The buffer is not copied, but rather the NumPy array
