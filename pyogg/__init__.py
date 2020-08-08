@@ -8,7 +8,7 @@ from . import ogg
 from .ogg import PyOggError, PYOGG_OGG_AVAIL
 
 from . import vorbis
-from.vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL
+from.vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL, PYOGG_VORBIS_ENC_AVAIL
 
 from . import opus
 from.opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL, PYOGG_OPUS_ENC_AVAIL

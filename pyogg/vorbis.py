@@ -86,6 +86,10 @@ if libvorbisfile is None:
 else:
     PYOGG_VORBIS_FILE_AVAIL = True
 
+if libvorbisenc is None:
+    PYOGG_VORBIS_ENC_AVAIL = False
+else:
+    PYOGG_VORBIS_ENC_AVAIL = True
 
 
 if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
