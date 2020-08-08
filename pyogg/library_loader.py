@@ -50,7 +50,6 @@ class InternalLibrary:
         # Attempt to load the library from here
         path = _here + "/" + name 
         try:
-            print(f"Trying '{path}'")
             lib = ctypes.CDLL(path)
         except OSError as e:
             print(str(e))
@@ -58,9 +57,9 @@ class InternalLibrary:
 
         # Check that the library passes the tests
         if tests and all(run_tests(lib, tests)):
-            print("Found internal library")
             return lib
-        print("Test failed!")
+
+        # Library failed tests
         return None
         
 
