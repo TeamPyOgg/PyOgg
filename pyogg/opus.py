@@ -158,7 +158,12 @@ except:
 libopusenc = None
 
 try:
-    libopusenc = ExternalLibrary.load("opusenc", tests = [lambda lib: hasattr(lib, "ope_comments_create")])
+    names = {
+        "win32": "opusenc.dll",
+        "darwin": "libopusenc.dylib",
+        "external": "opusenc"
+    }
+    libopusenc = Library.load("opusenc", tests = [lambda lib: hasattr(lib, "ope_comments_create")])
 except ExternalLibraryError:
     pass
 except:
