@@ -39,8 +39,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             
             info = vorbis.libvorbisfile.ov_info(ctypes.byref(vf), -1)
 
+            #: Number of channels in audio file.
             self.channels = info.contents.channels
 
+            #: Number of samples per second (per channel), 44100 for
+            #  example.
             self.frequency = info.contents.rate
 
             array = (ctypes.c_char*4096)()
@@ -62,10 +65,12 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
                 if new_bytes == 0:
                     break
 
+            #: Raw PCM data from audio file.
             self.buffer = b"".join(self.buffer_array)
 
             vorbis.libvorbisfile.ov_clear(ctypes.byref(vf))
 
+            #: Length of the buffer
             self.buffer_length = len(self.buffer)
 
     class VorbisFileStream:
@@ -77,8 +82,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
                            
             info = vorbis.ov_info(ctypes.byref(self.vf), -1)
 
+            #: Number of channels in audio file.
             self.channels = info.contents.channels
 
+            #: Number of samples per second (per channel).  Always
+            #  48,000.
             self.frequency = info.contents.rate
 
             array = (ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))()
@@ -101,7 +109,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             self.exists = False
 
         def get_buffer(self):
-            """get_buffer() -> bytesBuffer, bufferLength"""
+            """get_buffer() -> bytesBuffer, bufferLength
+
+            Returns None when all data has been read from the file.
+
+            """
             if not self.exists:
                 return None
             buffer = []
@@ -151,14 +163,17 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             if error.value != 0:
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
 
+            #: Number of channels in audio file.
             self.channels = opus.op_channel_count(of, -1)
 
+            #: Total PCM Length.
             pcm_size = opus.op_pcm_total(of, -1)
 
             samples_read = ctypes.c_int(0)
 
             bfarr_t = opus.opus_int16*(pcm_size*self.channels)
 
+            #: Raw PCM data from audio file.
             self.buffer = ctypes.cast(ctypes.pointer(bfarr_t()),opus.opus_int16_p)
 
             ptr = ctypes.cast(ctypes.pointer(self.buffer), ctypes.POINTER(ctypes.c_void_p))
@@ -178,6 +193,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             self.buffer_length = samples_read.value*self.channels*2
 
+            #: Number of samples per second (per channel).
             self.frequency = 48000
 
         def as_array(self):
@@ -228,10 +244,13 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 self.of = None
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
 
+            #: Number of channels in audio file
             self.channels = opus.op_channel_count(self.of, -1)
 
+            #: Total PCM Length
             self.pcm_size = opus.op_pcm_total(self.of, -1)
 
+            #: Number of samples per second (per channel)
             self.frequency = 48000
 
             # The buffer size should be (per channel) large enough to
@@ -241,6 +260,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             self.bfarr_t = opus.opus_int16 * self.buffer_size
             self.buffer_ptr = ctypes.cast(ctypes.pointer(self.bfarr_t()),opus.opus_int16_p)
 
+            #: Bytes per sample
             self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
 
         def __del__(self):
@@ -252,6 +272,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             Returns an array of signed 16-bit integers.  If the file
             is in stereo, the left and right channels are interleaved.
+
+            Returns None when all data has been read.
 
             The array that is returned should be either processed or
             copied before the next call to get_buffer() or
@@ -1402,12 +1424,16 @@ if PYOGG_FLAC_AVAIL:
 
             self.client_data = ctypes.c_void_p()
 
+            #: Number of channels in audio file.
             self.channels = None
 
+            #: Number of samples per second (per channel).  For
+            #  example, 44100.
             self.frequency = None
 
             self.total_samples = None
 
+            #: Raw PCM data from audio file.
             self.buffer = None
 
             self.buffer_pos = 0
@@ -1438,6 +1464,7 @@ if PYOGG_FLAC_AVAIL:
 
             flac.FLAC__stream_decoder_finish(self.decoder)
 
+            #: Length of buffer
             self.buffer_length = len(self.buffer)
 
     class FlacFileStream:
@@ -1474,8 +1501,11 @@ if PYOGG_FLAC_AVAIL:
 
             self.client_data = ctypes.c_void_p()
 
+            #: Number of channels in audio file.
             self.channels = None
 
+            #: Number of samples per second (per channel).  For
+            #  example, 44100.
             self.frequency = None
 
             self.total_samples = None
@@ -1505,6 +1535,12 @@ if PYOGG_FLAC_AVAIL:
                 raise PyOggError("An error occured when trying to decode the metadata of {}".format(path))
 
         def get_buffer(self):
+            """Returns the buffer and its length.
+
+            Returns [buffer, buffer_length] or None if all data has
+            been read from the file.
+
+            """
             if (flac.FLAC__stream_decoder_get_state(self.decoder) == 4): # end of stream
                 return None
             stream_status = (flac.FLAC__stream_decoder_process_single(self.decoder))
@@ -1527,5 +1563,9 @@ else:
             raise PyOggError("The FLAC libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
 def pyoggSetStreamBufferSize(size):
+    """Changes the maximum size for stream buffers.
+
+    Initial value 8192.
+    """
     global PYOGG_STREAM_BUFFER_SIZE
     PYOGG_STREAM_BUFFER_SIZE = size
