@@ -1,7 +1,7 @@
 PyOgg - Python Bindings for Ogg, Opus, Vorbis and FLAC
 ======================================================
 
-.. include:: ../long_description.rst
+.. include:: description.rst
 
 ----
 
