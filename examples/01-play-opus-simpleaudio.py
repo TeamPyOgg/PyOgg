@@ -68,18 +68,15 @@ from datetime import datetime
 # Specify the filename to read
 filename = "left-right-demo-5s.opus"
 
-
 # Read the file using OpusFile
 print("Reading Ogg Opus file...")
 opus_file = pyogg.OpusFile(filename)
-
 
 # Display summary information about the audio
 print("\nRead Ogg Opus file")
 print("Channels:\n  ", opus_file.channels)
 print("Frequency (samples per second):\n  ",opus_file.frequency)
 print("Buffer Length (bytes):\n  ", opus_file.buffer_length)
-
 
 # Using the data from the buffer in OpusFile, create a NumPy array
 # with the correct shape.  Note that this does not copy the buffer's
@@ -93,12 +90,10 @@ buffer = numpy.ctypeslib.as_array(
      opus_file.channels)
 )
 
-
 # The shape of the array can be read as
 # "(number of samples per channel, number of channels)".
 print("Shape of numpy array (number of samples per channel, number of channels):\n  ",
       buffer.shape)
-
 
 # Play the audio
 print("\nPlaying...")
@@ -108,10 +103,8 @@ play_obj = sa.play_buffer(buffer,
                           bytes_per_sample,
                           opus_file.frequency)
 
-
 # Wait until sound has finished playing
 play_obj.wait_done()  
-
 
 # Report on the time spent during playback
 end_time = datetime.now()
