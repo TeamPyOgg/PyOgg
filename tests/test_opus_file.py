@@ -1,4 +1,12 @@
+import pytest
 import pyogg
+
+def test_error_in_filename():
+    # Load a non-existant file
+    filename = "does-not-exist.opus"
+    with pytest.raises(pyogg.PyOggError):
+        opus_file = pyogg.OpusFile(filename)
+    
 
 def test_as_array():
     # Load the demonstration file that is exactly 5 seconds long
