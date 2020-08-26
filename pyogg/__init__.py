@@ -450,8 +450,9 @@ if PYOGG_OPUS_AVAIL:
                 self._channels = n
             else:
                 raise PyOggError(
-                    "Cannot set the number of channels.  Perhaps "+
-                    "encode() was called before set_channels()?"
+                    "Cannot change the number of channels after "+
+                    "the encoder was created.  Perhaps "+
+                    "set_channels() was called after encode()?"
                 )
 
         def set_sampling_frequency(self, samples_per_second):
@@ -478,9 +479,9 @@ if PYOGG_OPUS_AVAIL:
                     )
             else:
                 raise PyOggError(
-                    "Cannot set sampling frequency.  "+
-                    "Perhaps encode() was called before "+
-                    "set_sampling_frequency()?"
+                    "Cannot change the sampling frequency after "+
+                    "the encoder was created.  Perhaps "+
+                    "set_sampling_frequency() was called after encode()?"
                 )
 
         def set_application(self, application):
@@ -510,8 +511,9 @@ if PYOGG_OPUS_AVAIL:
             """
             if self._encoder is not None:
                 raise PyOggError(
-                    "Cannot set application.  Perhaps encode() "+
-                    "was called before set_applicaiton()?"
+                    "Cannot change the application after "+
+                    "the encoder was created.  Perhaps "+
+                    "set_application() was called after encode()?"
                 )
             if application == "voip":
                 self._application = opus.OPUS_APPLICATION_VOIP
