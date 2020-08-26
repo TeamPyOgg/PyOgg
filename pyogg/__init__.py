@@ -552,8 +552,6 @@ if PYOGG_OPUS_AVAIL:
 
             """
             print(f"OpusEncoder.encode() called with {len(pcm_bytes)} bytes")
-            if len(pcm_bytes) != 20 * 48 * 2 * 2:
-                raise Exception("Unexpected number of bytes in OpusEncoder.encode()")
             
             # If we haven't already created an encoder, do so now
             if self._encoder is None:
@@ -1165,7 +1163,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
     class OggOpusWriter(OpusBufferedEncoder):
         """Encodes PCM data into an OggOpus file."""
 
-        def __init__(self, f):
+        def __init__(self, f, custom_pre_skip=None):
             """Construct an OggOpusWriter.
 
             f may be either a string giving the path to the file, or
@@ -1175,8 +1173,20 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             user's responsibility to close the file when they are
             finished with it.
 
+            The Opus encoder requires an amount of "warm up".  When
+            `custom_pre_skip` is None, the required amount of silence
+            is automatically calculated and inserted.  If a custom
+            (non-silent) pre-skip is desired, then `custom_pre_skip`
+            should be specified as the number of samples (per
+            channel).  It is then the user's responsibility to pass
+            the non-silent pre-skip samples to `encode()`.
+
             """
             super().__init__()
+
+            # Store the custom pre skip
+            self._custom_pre_skip = custom_pre_skip
+            
             self._i_opened_the_file = None
             if isinstance(f, str):
                 self._file = builtins.open(f, 'wb')
@@ -1226,10 +1236,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             if not self._finished:
                 self.close()
 
-            if self._i_opened_the_file:
-                print("Closing file")
-                self._file.close()
-
             # Clean up the Ogg-related memory
             ogg.ogg_stream_clear(self._stream_state)
         
@@ -1255,8 +1261,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             # now.  Then, write a frame of silence to warm up the
             # encoder.
             if not self._headers_written:
-                pre_skip = self._write_headers()
-                self._write_silence(pre_skip)
+                pre_skip = self._write_headers(self._custom_pre_skip)
+                if self._custom_pre_skip is None:
+                    self._write_silence(pre_skip)
 
             # Call the internal method to encode the bytes
             self._encode_to_oggopus(pcm_bytes)
@@ -1335,10 +1342,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             print("OggOpusWriter.close()")
             # Check we haven't already closed this stream
             if self._finished:
-                raise PyOggError(
-                    "Attempted to close an already closed stream; "+
-                    "perhaps close() was called more than once?"
-                )
+                # We're attempting to close an already closed stream,
+                # do nothing more.
+                return
             
             # Flush the underlying buffered encoder
             self._encode_to_oggopus(b"", flush=True)
@@ -1420,39 +1426,43 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
             return signature+data
                    
-        def _write_identification_header_packet(self):
-            # Obtain the algorithmic delay of the Opus encoder.  See
-            # page 27 of https://tools.ietf.org/html/rfc7845
-            delay = opus.opus_int32()
-            result = opus.opus_encoder_ctl(
-                self._encoder,
-                opus.OPUS_GET_LOOKAHEAD_REQUEST,
-                ctypes.pointer(delay)
-            )
-            if result != opus.OPUS_OK:
-                raise PyOggError(
-                    "Failed to obtain the algorithmic delay of "+
-                    "the Opus encoder: "+
-                    opus.opus_strerror(result).decode("utf")
+        def _write_identification_header_packet(self, custom_pre_skip):
+            if custom_pre_skip is not None:
+                # Use the user-specified amount of pre-skip
+                pre_skip = custom_pre_skip
+            else:
+                # Obtain the algorithmic delay of the Opus encoder.  See
+                # page 27 of https://tools.ietf.org/html/rfc7845
+                delay = opus.opus_int32()
+                result = opus.opus_encoder_ctl(
+                    self._encoder,
+                    opus.OPUS_GET_LOOKAHEAD_REQUEST,
+                    ctypes.pointer(delay)
                 )
-            delay_samples = delay.value
+                if result != opus.OPUS_OK:
+                    raise PyOggError(
+                        "Failed to obtain the algorithmic delay of "+
+                        "the Opus encoder: "+
+                        opus.opus_strerror(result).decode("utf")
+                    )
+                delay_samples = delay.value
 
-            # Extra samples are recommended.  See
-            # https://tools.ietf.org/html/rfc7845#page-27
-            extra_samples = 120
+                # Extra samples are recommended.  See
+                # https://tools.ietf.org/html/rfc7845#page-27
+                extra_samples = 120
 
-            # We will just fill a whole frame with silence.  Calculate
-            # the minimum frame length, which we'll use as the
-            # pre-skip.
-            frame_durations = [2.5, 5, 10, 20, 40, 60] # milliseconds
-            frame_lengths = [
-                x * self._samples_per_second // 1000
-                for x in frame_durations
-            ]
-            for frame_length in frame_lengths:
-                if frame_length > delay_samples + extra_samples:
-                    pre_skip = frame_length
-                    break
+                # We will just fill a whole frame with silence.  Calculate
+                # the minimum frame length, which we'll use as the
+                # pre-skip.
+                frame_durations = [2.5, 5, 10, 20, 40, 60] # milliseconds
+                frame_lengths = [
+                    x * self._samples_per_second // 1000
+                    for x in frame_durations
+                ]
+                for frame_length in frame_lengths:
+                    if frame_length > delay_samples + extra_samples:
+                        pre_skip = frame_length
+                        break
 
             # Create the identification header
             id_header = self._make_identification_header(
@@ -1543,10 +1553,12 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                 print("Flushing a page")
                 self._write_page()
             
-        def _write_headers(self):
+        def _write_headers(self, custom_pre_skip):
             """ Write the two Opus header packets."""
             print("OggOpusWriter writing the two identificaiton headers")
-            pre_skip = self._write_identification_header_packet()
+            pre_skip = self._write_identification_header_packet(
+                custom_pre_skip
+            )
             self._write_comment_header_packet()
 
             # Store that the headers have been written
