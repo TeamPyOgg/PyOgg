@@ -740,7 +740,7 @@ if PYOGG_OPUS_AVAIL:
 
             """
             # Get the encoded packets
-            results = self._encode(pcm_bytes, flush=flush)
+            results = self.encode_with_samples(pcm_bytes, flush=flush)
 
             # Strip the sample lengths
             stripped_results = [encoded_packet for
@@ -748,14 +748,25 @@ if PYOGG_OPUS_AVAIL:
 
             return stripped_results
 
-        def _encode(self, pcm_bytes, flush=False):
-            """Helper function for encode.
+        def encode_with_samples(self, pcm_bytes, flush=False, callback=None):
+            """Gets encoded packets and their number of samples.
 
             This method returns a list, where each item in the list is
             a tuple.  The first item in the tuple is an Opus-encoded
             frame stored as a bytes-object.  The second item in the
             tuple is the number of samples encoded (excluding
             silence).
+
+            If `callback` is supplied then this method will instead
+            return an empty list but call the callback for every
+            Opus-encoded frame that would have been returned as a
+            list.  This option has the desireable property of
+            eliminating the copying of the encoded packets, which is
+            required in order to form a list.  The callback should
+            take two arguments, the encoded frame (a Python bytes
+            object) and the number of samples encoded per channel (an
+            int).  The user must either process or copy the data as
+            the data may be overwritten once the callback terminates.
 
             """
             self._buffer.append(pcm_bytes)
@@ -776,12 +787,18 @@ if PYOGG_OPUS_AVAIL:
                 # Encode the PCM
                 encoded_packet = super().encode(pcm_to_encode)
 
-                # Create a deep copy (otherwise the contents will be
-                # overwritten if there is a next call to encode
-                encoded_packet_copy = copy.deepcopy(encoded_packet)
+                if callback is None:
+                    # Create a deep copy (otherwise the contents will be
+                    # overwritten if there is a next call to encode
+                    encoded_packet_copy = copy.deepcopy(encoded_packet)
 
-                # Append the copy of the encoded packet
-                results.append((encoded_packet_copy, samples))
+                    # Append the copy of the encoded packet
+                    results.append((encoded_packet_copy, samples))
+                else:
+                    # Call the callback with the encoded packet; it is
+                    # the user's responsibility to copy the data if
+                    # required.
+                    callback(encoded_packet, samples)
 
             return results
 
@@ -1274,7 +1291,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             print(f"OggOpusWriter._encode_to_oggopus(): called with {len(pcm_bytes)} bytes in sample")
             # Encode the PCM data into an Opus packet
             print(f"OggOpusWriter._encode_to_oggopus(): flush = {flush}")
-            encoded_packets = super()._encode(pcm_bytes, flush=flush)
+            encoded_packets = super().encode_with_samples(pcm_bytes, flush=flush)
             print(f"OggOpusWriter._encode_to_oggopus(): have {len(encoded_packets)} packet(s)")
 
             # DEBUG
