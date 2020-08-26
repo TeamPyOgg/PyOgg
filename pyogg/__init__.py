@@ -928,10 +928,12 @@ if PYOGG_OPUS_AVAIL:
                         "set_channels()"
                     )
                 self._channels = n
+                print(f"self._channels = {self._channels}")
             else:
                 raise PyOggError(
-                    "Cannot set the number of channels.  Perhaps "+
-                    "decode() was called before set_channels()?"
+                    "Cannot change the number of channels after "+
+                    "the decoder was created.  Perhaps "+
+                    "set_channels() was called after decode()?"
                 )
             self._create_pcm_buffer()
 
@@ -961,9 +963,9 @@ if PYOGG_OPUS_AVAIL:
                     )
             else:
                 raise PyOggError(
-                    "Cannot set sampling frequency.  "+
-                    "Perhaps encode() was called before "+
-                    "set_sampling_frequency()?"
+                    "Cannot change the sampling frequency after "+
+                    "the decoder was created.  Perhaps "+
+                    "set_sampling_frequency() was called after decode()?"
                 )
             self._create_pcm_buffer()
 
@@ -971,7 +973,7 @@ if PYOGG_OPUS_AVAIL:
             """Decodes an Opus-encoded packet into PCM.
 
             """
-            # If we haven't already created an decoder, do so now
+            # If we haven't already created a decoder, do so now
             if self._decoder is None:
                 self._decoder = self._create_decoder()
 
@@ -988,11 +990,7 @@ if PYOGG_OPUS_AVAIL:
 
             # Check that we have a PCM buffer
             if self._pcm_buffer is None:
-                raise PyOggError(
-                    "PCM buffer was not configured.  Perhaps "+
-                    "decode() was called before set_channels() "+
-                    "and set_sampling_frequency()?"
-                )
+                raise PyOggError("PCM buffer was not configured.")
 
             # Decode the encoded frame
             result = opus.opus_decode(
@@ -1140,6 +1138,7 @@ if PYOGG_OPUS_AVAIL:
                 samples_per_second,
                 channels
             );
+            print(f"Initialised decoder with {channels} channels")
 
             # Check that there hasn't been an error when initialising the
             # decoder
