@@ -166,7 +166,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             pcm_size = opus.op_pcm_total(of, -1)
             Buf = opus.opus_int16*(pcm_size*self.channels)
             buf = Buf()
-            print("len(bytes(buf)):", len(bytes(buf)))
 
             # Create a pointer to the newly allocated memory.  It
             # seems we can only do pointer arithmetic on void
@@ -176,6 +175,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 ctypes.pointer(buf),
                 ctypes.c_void_p
             )
+            buf_ptr_zero = buf_ptr.value
 
             #: Bytes per sample
             self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
@@ -185,7 +185,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             samples = 0
             while True:
                 # Calculate remaining buffer size
-                # TODO
+                remaining_buffer = (
+                    len(buf)
+                    - (buf_ptr.value
+                       - buf_ptr_zero) // self.bytes_per_sample
+                )
 
                 # Convert buffer pointer to the desired type
                 ptr = ctypes.cast(
@@ -197,7 +201,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 ns = opus.op_read(
                     of,
                     ptr,
-                    pcm_size*self.channels,
+                    remaining_buffer,
                     ogg.c_int_p()
                 )
                 
@@ -205,7 +209,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 if ns<0:
                     raise PyOggError(
                         "Error while reading OggOpus file. "+
-                        "Error code: {}".format(error.value)
+                        "Error code: {}".format(ns)
                     )
 
                 # Increment the pointer
@@ -231,7 +235,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # Store the buffer as Python bytes
             #: Raw PCM data from audio file.
             self.buffer = bytes(buf)
-            
 
         def as_array(self):
             """Returns the buffer as a NumPy array.
@@ -292,8 +295,12 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             # hold 120ms (the largest possible Opus frame) at 48kHz.
             # See https://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html#ga963c917749335e29bb2b698c1cb20a10
             self.buffer_size = self.frequency // 1000 * 120 * self.channels
-            self.bfarr_t = opus.opus_int16 * self.buffer_size
-            self.buffer_ptr = ctypes.cast(ctypes.pointer(self.bfarr_t()),opus.opus_int16_p)
+            self.Buf = opus.opus_int16 * self.buffer_size
+            self._buf = self.Buf()
+            self.buffer_ptr = ctypes.cast(
+                ctypes.pointer(self._buf),
+                opus.opus_int16_p
+            )
 
             self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
 
@@ -338,8 +345,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 ctypes.POINTER(opus.opus_int16 * (samples_read*self.channels))
             )
 
-            # Return the array of the correct size
-            return result_ptr.contents
+            # Convert the array to Python bytes
+            return bytes(result_ptr.contents)
 
         def get_buffer_as_array(self):
             """Provides the buffer as a NumPy array.
@@ -361,20 +368,18 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             if buf is None:
                 return None
 
-            # Get pointer to first element
-            ptr_to_first_element = ctypes.cast(
-                ctypes.pointer(buf),
-                ctypes.POINTER(opus.opus_int16)
+            # Convert the bytes buffer to a NumPy array
+            array = numpy.frombuffer(
+                buf,
+                dtype=numpy.int16
             )
 
-            # Convert to a numpy array
-            array = numpy.ctypeslib.as_array(
-                buf
-            )
-
-            # Reshape the array and return it
+            # Reshape the array
             return array.reshape(
-                (-1, self.channels)
+                (len(buf)
+                 // self.bytes_per_sample
+                 // self.channels,
+                 self.channels)
             )
 
 else:
