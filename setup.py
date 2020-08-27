@@ -12,8 +12,8 @@ from os import path
 
 here = path.abspath(path.dirname(__file__))
 
-# Get the long description from the README file
-with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+# Get the long description from the file
+with open(path.join(here, 'docs/description.rst'), encoding='utf-8') as f:
     long_description_list = f.readlines()
 
     long_description = ""
