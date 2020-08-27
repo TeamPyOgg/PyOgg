@@ -34,7 +34,7 @@ def init_encoder(samples_per_second=48000,
 
     if callback is None:
         # Encode the sample
-        encoder.encode(buf)
+        _ = encoder.encode(buf)
     else:
         # Encode with callback
         encoder.encode_with_samples(buf, callback=callback)
@@ -47,18 +47,43 @@ def test_encode():
 
 
 def test_callback():
-    frame_size_ms = 20
+    # Calculate expected number of samples
+    frame_size_ms = 10
     samples_per_second = 48000
     expected_samples = (
         frame_size_ms
         * samples_per_second // 1000
     )
+
+    # Calculate the expected length of the decoded packet
+    bytes_per_sample = 2
+    channels = 2
+    expected_pcm_length = (
+        expected_samples
+        * bytes_per_sample
+        * channels
+    )
     
+    # Create a decoder to test that the encoded packets are valid
+    decoder = pyogg.OpusDecoder()
+    decoder.set_sampling_frequency(samples_per_second)
+    decoder.set_channels(channels)
+    
+    # Specify the callback that will receive the encoded packets
     def callback(encoded_packet, samples):
         assert len(encoded_packet) > 0
         assert samples == expected_samples
 
-    encoder = init_encoder(callback=callback)
+        # Check encoded packet is valid
+        pcm = decoder.decode(encoded_packet)
+        assert len(pcm) == expected_pcm_length
+
+    # Create the encoder
+    encoder = init_encoder(
+        channels = channels,
+        frame_size = frame_size_ms,
+        callback = callback
+    )
     
 
 def test_invalid_frame_size():

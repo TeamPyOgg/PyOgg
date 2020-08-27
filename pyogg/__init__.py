@@ -1237,6 +1237,10 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             # EOS bit was set in a final packet)
             self._finished = False
 
+            # Reference to the current encoded packet (written only
+            # when we know if it the last)
+            self._current_encoded_packet = None
+
             # DEBUG
             import wave
             self.wave_out = wave.open("out.wav", "wb")
@@ -1254,9 +1258,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             if not self._finished:
                 self.close()
 
-            # Clean up the Ogg-related memory
-            ogg.ogg_stream_clear(self._stream_state)
-        
         #
         # User visible methods
         #
@@ -1289,32 +1290,19 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             
         def _encode_to_oggopus(self, pcm_bytes, flush=False):
             print(f"OggOpusWriter._encode_to_oggopus(): called with {len(pcm_bytes)} bytes in sample")
-            # Encode the PCM data into an Opus packet
-            print(f"OggOpusWriter._encode_to_oggopus(): flush = {flush}")
-            encoded_packets = super().encode_with_samples(pcm_bytes, flush=flush)
-            print(f"OggOpusWriter._encode_to_oggopus(): have {len(encoded_packets)} packet(s)")
-
-            # DEBUG
-            # Store a copy of the encoded packets
-            try:
-                self._encoded_packets.append(encoded_packets)
-            except:
-                self._encoded_packets = encoded_packets
             
-            
-            for encoded_packet, samples in encoded_packets:
-                # DEBUG
-                if samples < 0:
-                    print("samples less than zero:",samples,"<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-                
-                # If the current packet is valid, write it into the stream
+            def handle_encoded_packet(encoded_packet, samples):
+                # If the previous packet is valid, write it into the stream
                 if self._packet_valid:
                     print("Packet is valid; writing")
                     self._write_packet()
                 
+                # Keep a copy of the current encoded packet
+                self._current_encoded_packet = copy.deepcopy(encoded_packet)
+                
                 # Obtain a pointer to the encoded packet
                 encoded_packet_ptr = ctypes.cast(
-                    encoded_packet,
+                    self._current_encoded_packet,
                     ctypes.POINTER(ctypes.c_ubyte)
                 )
 
@@ -1325,7 +1313,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                 
                 # Place data into the packet
                 self._ogg_packet.packet = encoded_packet_ptr
-                self._ogg_packet.bytes = len(encoded_packet)
+                self._ogg_packet.bytes = len(self._current_encoded_packet)
                 self._ogg_packet.b_o_s = 0
                 self._ogg_packet.e_o_s = 0
                 self._ogg_packet.granulepos = self._count_samples
@@ -1355,6 +1343,14 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
                 # Mark the packet as valid
                 self._packet_valid = True
+
+            # Encode the PCM data into an Opus packet
+            print(f"OggOpusWriter._encode_to_oggopus(): flush = {flush}")
+            super().encode_with_samples(
+                pcm_bytes,
+                flush=flush,
+                callback=handle_encoded_packet
+            )
 
         def close(self):
             print("OggOpusWriter.close()")
@@ -1387,6 +1383,12 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                 self._file.close()
                 self._i_opened_the_file = False
 
+            # Clean up the Ogg-related memory
+            ogg.ogg_stream_clear(self._stream_state)
+        
+            # Clean up the reference to the encoded packet (as it must
+            # now have been written)
+            del self._current_encoded_packet
             
         #
         # Internal methods
