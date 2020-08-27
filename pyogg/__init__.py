@@ -1254,7 +1254,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             
             
         def __del__(self):
-            print("OggOpusWriter.__del__(): closing")
             if not self._finished:
                 self.close()
 
@@ -1289,12 +1288,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
             
         def _encode_to_oggopus(self, pcm_bytes, flush=False):
-            print(f"OggOpusWriter._encode_to_oggopus(): called with {len(pcm_bytes)} bytes in sample")
-            
             def handle_encoded_packet(encoded_packet, samples):
                 # If the previous packet is valid, write it into the stream
                 if self._packet_valid:
-                    print("Packet is valid; writing")
                     self._write_packet()
                 
                 # Keep a copy of the current encoded packet
@@ -1308,8 +1304,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
                 # Increase the count of the number of samples written
                 self._count_samples += samples
-                print(f"count samples = {self._count_samples}")
-
                 
                 # Place data into the packet
                 self._ogg_packet.packet = encoded_packet_ptr
@@ -1318,24 +1312,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                 self._ogg_packet.e_o_s = 0
                 self._ogg_packet.granulepos = self._count_samples
                 self._ogg_packet.packetno = self._count_packets
-                print("granulepos:", self._ogg_packet.granulepos)
-
-                # # DEBUG
-                # # Convert pointer to bytes
-                # # Get array length
-                # length = self._ogg_packet.bytes
-                # import numpy.ctypeslib
-                # np_array = numpy.ctypeslib.as_array(
-                #     self._ogg_packet.packet,
-                #     shape = (length,)
-                # )
-
-                # # Write out pcm to wave
-                # encoded_packet = np_array.tobytes()
-                # pcm = self.decoder.decode(encoded_packet)
-                # self.wave_out.writeframes(pcm)
-
-
                 
                 # Increase the counter of the number of packets
                 # in the stream
@@ -1345,7 +1321,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                 self._packet_valid = True
 
             # Encode the PCM data into an Opus packet
-            print(f"OggOpusWriter._encode_to_oggopus(): flush = {flush}")
             super().encode_with_samples(
                 pcm_bytes,
                 flush=flush,
@@ -1353,7 +1328,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             )
 
         def close(self):
-            print("OggOpusWriter.close()")
             # Check we haven't already closed this stream
             if self._finished:
                 # We're attempting to close an already closed stream,
@@ -1368,8 +1342,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             self._ogg_packet.e_o_s = 1
 
             # Write the packet to the stream
-            print("OggopusWriter.close(): writing a last packet -- should we check it's valid?") 
-            self._write_packet()
+            if self._packet_valid:
+                self._write_packet()
 
             # Flush the stream of any unwritten pages
             self._flush()
@@ -1379,7 +1353,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
             # Close the file if we opened it
             if self._i_opened_the_file:
-                print("Closing file")
                 self._file.close()
                 self._i_opened_the_file = False
 
@@ -1556,7 +1529,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
         def _write_page(self):
             """ Write page to file """
-            print("OggOpusWriter writing a page.")
             self._file.write(
                 bytes(self._ogg_page.header[0:self._ogg_page.header_len])
             )
@@ -1566,16 +1538,13 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
         def _flush(self):
             """ Flush all pages to the file. """
-            print("OggOpusWriter._flush() called")
             while ogg.ogg_stream_flush(
                     ctypes.pointer(self._stream_state),
                     ctypes.pointer(self._ogg_page)) != 0:
-                print("Flushing a page")
                 self._write_page()
             
         def _write_headers(self, custom_pre_skip):
             """ Write the two Opus header packets."""
-            print("OggOpusWriter writing the two identificaiton headers")
             pre_skip = self._write_identification_header_packet(
                 custom_pre_skip
             )
@@ -1593,27 +1562,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             return pre_skip
 
         def _write_packet(self):
-            print("OggOpusWriter._write_packet(): adding a packet to the stream")
-
-
-            # DEBUG
-            # Convert pointer to bytes
-            # Get array length
-            length = self._ogg_packet.bytes
-            import numpy.ctypeslib
-            np_array = numpy.ctypeslib.as_array(
-                self._ogg_packet.packet,
-                shape = (length,)
-            )
-            
-            # Write out pcm to wave
-            encoded_packet = np_array.tobytes()
-            pcm = self.decoder.decode(encoded_packet)
-            self.wave_out.writeframes(pcm)
-                
-            print("writing granulepos:", self._ogg_packet.granulepos)
-
-            
             # Place the packet into the stream
             result = ogg.ogg_stream_packetin(
                 self._stream_state,
@@ -1630,7 +1578,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             while ogg.ogg_stream_pageout(
                     ctypes.pointer(self._stream_state),
                     ctypes.pointer(self._ogg_page)) != 0:
-                print("OggOpusWriter._write_packet() calling _write_page()")
                 self._write_page()
 
         def _write_silence(self, samples):
