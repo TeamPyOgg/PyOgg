@@ -43,8 +43,14 @@ except ImportError:
     if should_install_requirements.lower() == "y":
         import subprocess, sys
         
-        install_command = sys.executable + " -m pip install -r " + \
-                              os.path.realpath("01-play-opus-simpleaudio.requirements.txt")
+        install_command = [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            os.path.realpath("01-play-opus-simpleaudio.requirements.txt")
+        ]
 
         popen = subprocess.Popen(install_command,
                                  stdout=subprocess.PIPE, universal_newlines=True)
