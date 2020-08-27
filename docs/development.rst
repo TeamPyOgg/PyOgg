@@ -13,6 +13,16 @@ If you are interested in contributing to the development of PyOgg:
   to have added into PyOgg.
 
 
+Editable Install
+----------------
+
+If you're developing PyOgg, you may find it more convenient if PyOgg
+is installed in editable mode.  From the same directory as
+``setup.py`` can be found, run::
+
+  pip install -e .
+  
+
 Automated Tests
 ---------------
 
