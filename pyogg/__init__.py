@@ -553,8 +553,6 @@ if PYOGG_OPUS_AVAIL:
             left, then right channels if in stereo).
 
             """
-            print(f"OpusEncoder.encode() called with {len(pcm_bytes)} bytes")
-            
             # If we haven't already created an encoder, do so now
             if self._encoder is None:
                 self._encoder = self._create_encoder()
@@ -680,6 +678,11 @@ if PYOGG_OPUS_AVAIL:
 
         
     class OpusBufferedEncoder(OpusEncoder):
+        # TODO: This could be made more efficient.  We don't need a
+        # deque.  Instead, we need only sufficient PCM storage for one
+        # whole packet.  We know the size of the packet thanks to
+        # set_frame_size().
+        
         def __init__(self):
             super().__init__()
             
@@ -867,7 +870,6 @@ if PYOGG_OPUS_AVAIL:
                         // self._channels
                         // ctypes.sizeof(opus.opus_int16)
                     )
-                    print("OpusBufferedEncoder._get_next_frame(): Samples (adding silence):", samples)
                     # Fill remainder of frame with silence
                     bytes_remaining = self._frame_size_bytes - len(next_frame)
                     next_frame += b'\x00' * bytes_remaining
@@ -906,7 +908,6 @@ if PYOGG_OPUS_AVAIL:
                 // self._channels
                 // ctypes.sizeof(opus.opus_int16)
             )
-            print("Samples (no silence):", samples)
 
             return (next_frame, samples)
                     
@@ -945,7 +946,6 @@ if PYOGG_OPUS_AVAIL:
                         "set_channels()"
                     )
                 self._channels = n
-                print(f"self._channels = {self._channels}")
             else:
                 raise PyOggError(
                     "Cannot change the number of channels after "+
@@ -1155,7 +1155,6 @@ if PYOGG_OPUS_AVAIL:
                 samples_per_second,
                 channels
             );
-            print(f"Initialised decoder with {channels} channels")
 
             # Check that there hasn't been an error when initialising the
             # decoder
@@ -1240,18 +1239,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             # Reference to the current encoded packet (written only
             # when we know if it the last)
             self._current_encoded_packet = None
-
-            # DEBUG
-            import wave
-            self.wave_out = wave.open("out.wav", "wb")
-            self.wave_out.setnchannels(2)
-            self.wave_out.setsampwidth(2)
-            self.wave_out.setframerate(48000)
-
-            self.decoder = OpusDecoder()
-            self.decoder.set_sampling_frequency(48000)
-            self.decoder.set_channels(2)
-            
             
         def __del__(self):
             if not self._finished:
