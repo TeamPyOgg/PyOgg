@@ -35,6 +35,13 @@ at ____.
 Building the Docs
 =================
 
+If you are unable to find the documentation at the previously
+mentioned address, you may build the documentation yourself.  First,
+clone this repository and from within the repository's directory,
+install PyOgg in editable mode using::
+
+    pip install -e .
+      
 Building the documentation requires Sphinx.  To install Sphinx:
 
     pip install sphinx
