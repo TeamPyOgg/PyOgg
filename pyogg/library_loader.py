@@ -52,7 +52,6 @@ class InternalLibrary:
         try:
             lib = ctypes.CDLL(path)
         except OSError as e:
-            print(str(e))
             return None
 
         # Check that the library passes the tests

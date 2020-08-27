@@ -49,7 +49,12 @@ __here = os.getcwd()
 libflac = None
 
 try:
-    libflac = ExternalLibrary.load("FLAC", tests = [lambda lib: hasattr(lib, "FLAC__EntropyCodingMethodTypeString")])
+    names = {
+        "win32": "libFLAC.dll",
+        "darwin": "libFLAC.dylib",
+        "external": "FLAC"
+    }
+    libflac = Library.load(names, tests = [lambda lib: hasattr(lib, "FLAC__EntropyCodingMethodTypeString")])
 except ExternalLibraryError:
     pass
 except:

@@ -163,7 +163,7 @@ try:
         "darwin": "libopusenc.dylib",
         "external": "opusenc"
     }
-    libopusenc = None#Library.load(names, tests = [lambda lib: hasattr(lib, "ope_comments_create")])
+    libopusenc = Library.load(names, tests = [lambda lib: hasattr(lib, "ope_comments_create")])
 except ExternalLibraryError:
     pass
 except:
