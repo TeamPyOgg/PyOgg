@@ -72,10 +72,10 @@ examined by installing the Python coverage package::
 
 And then running the tests with the command::
 
-  coverage run --source=.. -m pytest
+  coverage run --source=../pyogg -m pytest
   coverage html
 
-You can then open the file ``htmlcov/index.html`` that gives a
+You can then open the file ``htmlcov/index.html``, which gives a
 detailed line-by-line analysis of the tests' coverage.
 
 
