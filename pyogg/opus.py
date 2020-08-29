@@ -131,8 +131,8 @@ libopus = None
 
 try:
     names = {
-        "win32": "opus.dll",
-        "darwin": "libopus.0.dylib",
+        "Windows": "opus.dll",
+        "Darwin": "libopus.0.dylib",
         "external": "opus"
     }
     libopus = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
@@ -145,8 +145,8 @@ libopusfile = None
 
 try:
     names = {
-        "win32": "opusfile.dll",
-        "darwin": "libopusfile.0.dylib",
+        "Windows": "opusfile.dll",
+        "Darwin": "libopusfile.0.dylib",
         "external": "opusfile"
     }
     libopusfile = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_head_parse")])
@@ -159,8 +159,8 @@ libopusenc = None
 
 try:
     names = {
-        "win32": "opusenc.dll",
-        "darwin": "libopusenc.0.dylib",
+        "Windows": "opusenc.dll",
+        "Darwin": "libopusenc.0.dylib",
         "external": "opusenc"
     }
     libopusenc = Library.load(names, tests = [lambda lib: hasattr(lib, "ope_comments_create")])
@@ -351,7 +351,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     opus_uint= c_uint
     opus_uint64 = c_ulonglong
     opus_uint8 = c_int8
-
+    
     # /opus_types
 
     # opus

@@ -31,17 +31,17 @@ run_tests = lambda lib, tests: [f(lib) for f in tests]
 
 # Get the appropriate directory for the shared libraries depending 
 # on the current platform and architecture
-platform = sys.platform
+platform = platform.system()
 lib_dir = None
-if platform == "darwin":
+if platform == "Darwin":
     lib_dir = "libs/macos"
-elif platform == "win32":
+elif platform == "Windows":
     if architecture == "32bit":
         lib_dir = "libs/win32"
     elif architecture == "64bit":
         lib_dir = "libs/win_amd64"
 
-
+print(lib_dir)
 class Library:
     @staticmethod
     def load(names, paths = None, tests = []):
@@ -53,7 +53,7 @@ class Library:
 
 class InternalLibrary:
     def load(names, tests):
-        # If we do not have library directory, give up immediately
+        # If we do not have a library directory, give up immediately
         if lib_dir is None:
             return None
             

@@ -53,8 +53,8 @@ libvorbis = None
 
 try:
     names = {
-        "win32": "libvorbis.dll",
-        "darwin": "libvorbis.0.dylib",
+        "Windows": "libvorbis.dll",
+        "Darwin": "libvorbis.0.dylib",
         "external": "vorbis"
     }
     libvorbis = Library.load(names, tests = [lambda lib: hasattr(lib, "vorbis_info_init")])
@@ -67,8 +67,8 @@ libvorbisfile = None
 
 try:
     names = {
-        "win32": "libvorbisfile.dll",
-        "darwin": "libvorbisfile.3.dylib",
+        "Windows": "libvorbisfile.dll",
+        "Darwin": "libvorbisfile.3.dylib",
         "external": "vorbisfile"
     }
     libvorbisfile = Library.load(names, tests = [lambda lib: hasattr(lib, "ov_clear")])
@@ -81,8 +81,8 @@ libvorbisenc = None
 
 try:
     names = {
-        "win32": "libvorbisenc.dll",
-        "darwin": "libvorbisenc.2.dylib",
+        "Windows": "libvorbisenc.dll",
+        "Darwin": "libvorbisenc.2.dylib",
         "external": "vorbisenc"
     }
     libvorbisenc = Library.load(names, tests = [lambda lib: hasattr(lib, "vorbis_encode_init")])

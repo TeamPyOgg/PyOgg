@@ -60,8 +60,8 @@ libogg = None
 
 try:
     names = {
-        "win32": "libogg.dll",
-        "darwin": "libogg.0.dylib",
+        "Windows": "libogg.dll",
+        "Darwin": "libogg.0.dylib",
         "external": "ogg"
     }
     libogg = Library.load(names, tests = [lambda lib: hasattr(lib, "oggpack_writeinit")])

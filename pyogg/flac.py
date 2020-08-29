@@ -50,8 +50,8 @@ libflac = None
 
 try:
     names = {
-        "win32": "libFLAC.dll",
-        "darwin": "libFLAC.8.dylib",
+        "Windows": "libFLAC.dll",
+        "Darwin": "libFLAC.8.dylib",
         "external": "FLAC"
     }
     libflac = Library.load(names, tests = [lambda lib: hasattr(lib, "FLAC__EntropyCodingMethodTypeString")])
