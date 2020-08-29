@@ -72,10 +72,10 @@ examined by installing the Python coverage package::
 
 And then running the tests with the command::
 
-  coverage run --source=.. -m pytest
+  coverage run --source=../pyogg -m pytest
   coverage html
 
-You can then open the file ``htmlcov/index.html`` that gives a
+You can then open the file ``htmlcov/index.html``, which gives a
 detailed line-by-line analysis of the tests' coverage.
 
 
@@ -93,3 +93,31 @@ To build the documentation run::
 
 You will then find the latest documentation at
 ``docs/_build/html/index.html``.
+
+
+Building Wheels
+---------------
+
+Wheels can be built for macOS, 32-bit Windows and 64-bit Windows.  For
+these systems, pre-compiled shared libraries can be found in the
+project repository under ``pyogg/libs/``.
+
+To build a Wheel you will need to have installed setuptools and wheel::
+
+  pip install --upgrade setuptools
+  pip install --upgrade wheel
+
+By default, the build script will create a Wheel for your current
+platform::
+
+  python setup.py build bdist_wheel
+
+If you wish to create a Wheel for a different platform, set the
+environment variable ``PYTHON_PYOGG_PLATFORM`` to either ``Darwin``
+for a macOS wheel, or ``Windows`` for Microsoft Windows platforms.
+For Windows, you will also need to set the environment variable
+``PYTHON_PYOGG_ARCHITECTURE`` to either ``32bit`` or ``64bit`` as
+required.  Finally, run the same build command list above.
+
+Ensure that the version for your wheel is correct.  The version
+definition can be found in ``pyogg/__init__.py``.
