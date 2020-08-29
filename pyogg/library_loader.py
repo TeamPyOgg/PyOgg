@@ -29,10 +29,17 @@ _loaded_libraries = {}
 
 run_tests = lambda lib, tests: [f(lib) for f in tests]
 
-dirs = {
-    "win32": "libs/win32",
-    "darwin": "libs/macos",
-}    
+# Get the appropriate directory for the shared libraries depending 
+# on the current platform and architecture
+platform = sys.platform
+lib_dir = None
+if platform == "darwin":
+    lib_dir = "libs/macos"
+elif platform == "win32":
+    if architecture == "32bit":
+        lib_dir = "libs/win32"
+    elif architecture == "64bit":
+        lib_dir = "libs/win_amd64"
 
 
 class Library:
@@ -46,17 +53,18 @@ class Library:
 
 class InternalLibrary:
     def load(names, tests):
-        # Get the name of the library for the current platform and the
-        # directory name
+        # If we do not have library directory, give up immediately
+        if lib_dir is None:
+            return None
+            
+        # Get the appropriate library filename given the platform
         try:
-            platform = sys.platform
             name = names[platform]
-            dir_ = dirs[platform]
         except KeyError:
             return None
 
         # Attempt to load the library from here
-        path = _here + "/" + dir_ + "/" + name 
+        path = _here + "/" + lib_dir + "/" + name 
         try:
             lib = ctypes.CDLL(path)
         except OSError as e:

@@ -40,6 +40,7 @@ architecture = os.environ.get(
 
 # Define the shared libraries to include in the Wheel packages.
 if system == 'Darwin':
+    print("Packaging shared libraries for macOS")
     package_data = {
         'pyogg': ["libs/macos/"+libname for libname in [
             'libogg.0.dylib',
@@ -56,8 +57,15 @@ if system == 'Darwin':
 elif system == 'Windows':
     # This could be made dependent on 32/64-bit architectures, based
     # on the achitecture variable above.
+    print("Packaging shared libraries for Windows")
+    print("achitecture:", architecture)
+    win_dirs = {
+        "32bit": "win32",
+        "64bit": "win_amd64"
+    }
+    win_dir = win_dirs[architecture]
     package_data = {
-        'pyogg': [
+        'pyogg': ["libs/"+win_dir+"/"+libname for libname in [
             'libFLAC.dll',
             'libogg.dll',
             'libvorbis.dll',
@@ -65,10 +73,11 @@ elif system == 'Windows':
             'opus.dll',
             'opusenc.dll',
             'opusfile.dll'
-        ]
+        ]]
     }
-    aip_safe = False
+    zip_safe = False
 else:
+    print("Unknown system; not packaging any shared libraries")
     package_data = None
     zip_safe = True
 
@@ -145,6 +154,7 @@ setup(
 
     # The shared libraries to include are defined above
     package_data=package_data,
+    zip_safe=zip_safe,
     
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
