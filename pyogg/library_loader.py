@@ -29,6 +29,11 @@ _loaded_libraries = {}
 
 run_tests = lambda lib, tests: [f(lib) for f in tests]
 
+dirs = {
+    "win32": "libs/win32",
+    "darwin": "libs/macos",
+}    
+
 
 class Library:
     @staticmethod
@@ -41,14 +46,17 @@ class Library:
 
 class InternalLibrary:
     def load(names, tests):
-        # Get the name of the library for the current platform
+        # Get the name of the library for the current platform and the
+        # directory name
         try:
-            name = names[sys.platform]
+            platform = sys.platform
+            name = names[platform]
+            dir_ = dirs[platform]
         except KeyError:
             return None
 
         # Attempt to load the library from here
-        path = _here + "/" + name 
+        path = _here + "/" + dir_ + "/" + name 
         try:
             lib = ctypes.CDLL(path)
         except OSError as e:

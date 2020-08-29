@@ -1,48 +1,112 @@
-"""A setuptools based setup module.
-See:
-https://packaging.python.org/en/latest/distributing.html
-https://github.com/pypa/sampleproject
-"""
+import os
+import platform
+from setuptools import setup
 
-# Always prefer setuptools over distutils
-from setuptools import setup, find_packages
-# To use a consistent encoding
-from codecs import open
-from os import path
+# "Import" __version__ from PyOgg's __init__.py.  This allows us to
+# query PyOgg's version from within Python too.  For discussion on
+# alternative techniques see
+# https://packaging.python.org/guides/single-sourcing-package-version/
+__version__ = 'unknown'
+for line in open('pyogg/__init__.py'):
+    if line.startswith('__version__'):
+        exec(line)
+        break
 
-here = path.abspath(path.dirname(__file__))
+    
+# Eventually we may wish to be specific as to which interpreters we
+# support.  This could be done with the following:
+# pythons = '.'.join([
+#     'cp32', 'cp33', 'cp34', 'cp35', 'cp36', 'cp37', 'cp38', 'cp39',
+#     'pp32', 'pp33', 'pp34', 'pp35', 'pp36', 'pp37',
+# ])
+# However, for the moment, we'll just say the we support all Python 2
+# and Python 3 interpreters.  For more information see
+# https://www.python.org/dev/peps/pep-0425/#platform-tag
+pythons = '.'.join(['py2', 'py3'])
 
-# Get the long description from the file
-with open(path.join(here, 'docs/description.rst'), encoding='utf-8') as f:
-    long_description_list = f.readlines()
 
-    long_description = ""
+# Environment variables for cross-platform package creation.  Set the
+# appropriate environment variable to override the current system's
+# value.
+system = os.environ.get(
+    'PYTHON_PYOGG_PLATFORM',
+    platform.system()
+)
+architecture = os.environ.get(
+    'PYTHON_PYOGG_ARCHITECTURE',
+    platform.architecture()[0]
+)
 
-    for line in long_description_list:
-        long_description += line
-    long_description = long_description.replace("\r", "")
 
+# Define the shared libraries to include in the Wheel packages.
+if system == 'Darwin':
+    package_data = {
+        'pyogg': ["libs/macos/"+libname for libname in [
+            'libogg.0.dylib',
+            'libopus.0.dylib',
+            'libopusfile.0.dylib',
+            'libopusenc.0.dylib',
+            'libvorbis.0.dylib',
+            'libvorbisfile.3.dylib',
+            'libvorbisenc.2.dylib',
+            'libFLAC.8.dylib'
+        ]]
+    }
+    zip_safe = False
+elif system == 'Windows':
+    # This could be made dependent on 32/64-bit architectures, based
+    # on the achitecture variable above.
+    package_data = {
+        'pyogg': [
+            'libFLAC.dll',
+            'libogg.dll',
+            'libvorbis.dll',
+            'libvorbisfile.dll',
+            'opus.dll',
+            'opusenc.dll',
+            'opusfile.dll'
+        ]
+    }
+    aip_safe = False
+else:
+    package_data = None
+    zip_safe = True
+
+
+# Override the 'bdist_wheel' command to create OS-dependent byt
+# Python-independent wheels
+try:
+    from wheel.bdist_wheel import bdist_wheel
+except ImportError:
+    cmdclass = {}
+else:
+    class bdist_wheel_half_pure(bdist_wheel):
+        """Create OS-dependent, but Python-independent wheels."""
+
+        def get_tag(self):
+            abi = 'none'
+            if system == 'Darwin':
+                oses = 'macosx_10_6_x86_64'
+            elif system == 'Windows':
+                if architecture == '32bit':
+                    oses = 'win32'
+                else:
+                    oses = 'win_amd64'
+            else:
+                oses = 'any'
+            return pythons, abi, oses
+
+    cmdclass = {'bdist_wheel': bdist_wheel_half_pure}
+    
 setup(
     name='PyOgg',
-
-    # Versions should comply with PEP440.  For a discussion on single-sourcing
-    # the version across setup.py and the project code, see
-    # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.6.14a6',
-
-    description='Xiph.org\'s Ogg Vorbis, Opus and FLAC for Python',
-    
-    long_description=open(path.join(here, 'README.md')).read(),
-    long_description_content_type='text/markdown',
-
-    # The project's main homepage.
+    version=__version__,
+    description="Xiph.org's Ogg Vorbis, Opus and FLAC for Python",
+    long_description=open('docs/description.rst').read(),
+    long_description_content_type='text/x-rst',
     url='https://github.com/Zuzu-Typ/PyOgg',
-
-    # Author details
     author='Zuzu_Typ',
     author_email='zuzu.typ@gmail.com',
-
-    # Choose your license
     license='BSD 3-clause "New" or "Revised"',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
@@ -78,32 +142,16 @@ setup(
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
     packages=['pyogg'],
+
+    # The shared libraries to include are defined above
+    package_data=package_data,
     
-    package_data={
-        # include shared libraries in wheel packages
-        'pyogg': ['libFLAC.dll',
-                  'libogg.dll',
-                  'libvorbis.dll',
-                  'libvorbisfile.dll',
-                  'opus.dll',
-                  'opusenc.dll',
-                  'opusfile.dll',
-                  'libogg.dylib',
-                  'libopus.dylib',
-                  'libopusfile.dylib']
-    },
-
-    # Alternatively, if you want to distribute just a my_module.py, uncomment
-    # this:
-    #   py_modules=["my_module"],
-
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-
     install_requires=[
-    ]
+    ],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
@@ -114,12 +162,6 @@ setup(
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
 
-    # Although 'package_data' is the preferred approach, in some case you may
-    # need to place data files outside of your packages. See:
-    # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
-    # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
-
-    # To provide executable scripts, use entry points in preference to the
-    # "scripts" keyword. Entry points provide cross-platform support and allow
-    # pip to create the appropriate form of executable for the target platform.
+    # Reference to the command class defined above
+    cmdclass=cmdclass,    
 )

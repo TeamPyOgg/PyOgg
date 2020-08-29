@@ -27,6 +27,10 @@ def _to_char_p(string):
 def _resize_array(array, new_size):
     return (array._type_*new_size).from_address(ctypes.addressof(array))
 
+
+#: PyOgg version number.  Versions should comply with PEP440.
+__version__ = '0.6.14a7'
+
 PYOGG_STREAM_BUFFER_SIZE = 8192
 
 if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):

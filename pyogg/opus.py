@@ -132,7 +132,7 @@ libopus = None
 try:
     names = {
         "win32": "opus.dll",
-        "darwin": "libopus.dylib",
+        "darwin": "libopus.0.dylib",
         "external": "opus"
     }
     libopus = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
@@ -146,7 +146,7 @@ libopusfile = None
 try:
     names = {
         "win32": "opusfile.dll",
-        "darwin": "libopusfile.dylib",
+        "darwin": "libopusfile.0.dylib",
         "external": "opusfile"
     }
     libopusfile = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_head_parse")])
@@ -160,7 +160,7 @@ libopusenc = None
 try:
     names = {
         "win32": "opusenc.dll",
-        "darwin": "libopusenc.dylib",
+        "darwin": "libopusenc.0.dylib",
         "external": "opusenc"
     }
     libopusenc = Library.load(names, tests = [lambda lib: hasattr(lib, "ope_comments_create")])
