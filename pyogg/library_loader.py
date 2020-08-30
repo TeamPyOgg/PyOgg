@@ -41,7 +41,7 @@ elif platform == "Windows":
     elif architecture == "64bit":
         lib_dir = "libs/win_amd64"
 
-print(lib_dir)
+
 class Library:
     @staticmethod
     def load(names, paths = None, tests = []):
