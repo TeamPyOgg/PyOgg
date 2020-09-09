@@ -52,7 +52,12 @@ __here = os.getcwd()
 libvorbis = None
 
 try:
-    libvorbis = ExternalLibrary.load("vorbis", tests = [lambda lib: hasattr(lib, "vorbis_info_init")])
+    names = {
+        "Windows": "libvorbis.dll",
+        "Darwin": "libvorbis.0.dylib",
+        "external": "vorbis"
+    }
+    libvorbis = Library.load(names, tests = [lambda lib: hasattr(lib, "vorbis_info_init")])
 except ExternalLibraryError:
     pass
 except:
@@ -61,7 +66,12 @@ except:
 libvorbisfile = None
 
 try:
-    libvorbisfile = ExternalLibrary.load("vorbisfile", tests = [lambda lib: hasattr(lib, "ov_clear")])
+    names = {
+        "Windows": "libvorbisfile.dll",
+        "Darwin": "libvorbisfile.3.dylib",
+        "external": "vorbisfile"
+    }
+    libvorbisfile = Library.load(names, tests = [lambda lib: hasattr(lib, "ov_clear")])
 except ExternalLibraryError:
     pass
 except:
@@ -70,7 +80,12 @@ except:
 libvorbisenc = None
 
 try:
-    libvorbisenc = ExternalLibrary.load("vorbisenc", tests = [lambda lib: hasattr(lib, "vorbis_encode_init")])
+    names = {
+        "Windows": "libvorbisenc.dll",
+        "Darwin": "libvorbisenc.2.dylib",
+        "external": "vorbisenc"
+    }
+    libvorbisenc = Library.load(names, tests = [lambda lib: hasattr(lib, "vorbis_encode_init")])
 except ExternalLibraryError:
     pass
 except:
@@ -86,6 +101,10 @@ if libvorbisfile is None:
 else:
     PYOGG_VORBIS_FILE_AVAIL = True
 
+if libvorbisenc is None:
+    PYOGG_VORBIS_ENC_AVAIL = False
+else:
+    PYOGG_VORBIS_ENC_AVAIL = True
 
 
 if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:

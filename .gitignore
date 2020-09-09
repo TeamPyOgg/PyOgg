@@ -10,7 +10,6 @@
 .pypirc
 build/
 dist/
-tests/
 PyOgg.egg-info/
 *.bat
 *.zip

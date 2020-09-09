@@ -8,7 +8,7 @@ from . import ogg
 from .ogg import PyOggError, PYOGG_OGG_AVAIL
 
 from . import vorbis
-from.vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL
+from.vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL, PYOGG_VORBIS_ENC_AVAIL
 
 from . import opus
 from.opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL, PYOGG_OPUS_ENC_AVAIL
@@ -27,6 +27,10 @@ def _to_char_p(string):
 def _resize_array(array, new_size):
     return (array._type_*new_size).from_address(ctypes.addressof(array))
 
+
+#: PyOgg version number.  Versions should comply with PEP440.
+__version__ = '0.6.14a7'
+
 PYOGG_STREAM_BUFFER_SIZE = 8192
 
 if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
@@ -39,8 +43,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             
             info = vorbis.libvorbisfile.ov_info(ctypes.byref(vf), -1)
 
+            #: Number of channels in audio file.
             self.channels = info.contents.channels
 
+            #: Number of samples per second (per channel), 44100 for
+            #  example.
             self.frequency = info.contents.rate
 
             array = (ctypes.c_char*4096)()
@@ -62,10 +69,12 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
                 if new_bytes == 0:
                     break
 
+            #: Raw PCM data from audio file.
             self.buffer = b"".join(self.buffer_array)
 
             vorbis.libvorbisfile.ov_clear(ctypes.byref(vf))
 
+            #: Length of the buffer
             self.buffer_length = len(self.buffer)
 
     class VorbisFileStream:
@@ -77,8 +86,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
                            
             info = vorbis.ov_info(ctypes.byref(self.vf), -1)
 
+            #: Number of channels in audio file.
             self.channels = info.contents.channels
 
+            #: Number of samples per second (per channel).  Always
+            #  48,000.
             self.frequency = info.contents.rate
 
             array = (ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))()
@@ -101,7 +113,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             self.exists = False
 
         def get_buffer(self):
-            """get_buffer() -> bytesBuffer, bufferLength"""
+            """get_buffer() -> bytesBuffer, bufferLength
+
+            Returns None when all data has been read from the file.
+
+            """
             if not self.exists:
                 return None
             buffer = []
@@ -144,48 +160,103 @@ else:
 if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
     class OpusFile:
         def __init__(self, path):
+            # Open the file
             error = ctypes.c_int()
+            of = opus.op_open_file(
+                ogg.to_char_p(path),
+                ctypes.pointer(error)
+            )
 
-            of = opus.op_open_file(ogg.to_char_p(path), ctypes.pointer(error))
-
+            # Check for errors 
             if error.value != 0:
-                raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
+                raise PyOggError(
+                    "File couldn't be opened or doesn't exist. "+
+                    "Error code: {}".format(error.value)
+                )
 
+            # Extract the number of channels in the newly opened file
+            #: Number of channels in audio file.
             self.channels = opus.op_channel_count(of, -1)
 
+            # Allocate sufficient memory to store the entire PCM
             pcm_size = opus.op_pcm_total(of, -1)
+            Buf = opus.opus_int16*(pcm_size*self.channels)
+            buf = Buf()
 
-            samples_read = ctypes.c_int(0)
+            # Create a pointer to the newly allocated memory.  It
+            # seems we can only do pointer arithmetic on void
+            # pointers.  See
+            # https://mattgwwalker.wordpress.com/2020/05/30/pointer-manipulation-in-python/
+            buf_ptr = ctypes.cast(
+                ctypes.pointer(buf),
+                ctypes.c_void_p
+            )
+            buf_ptr_zero = buf_ptr.value
 
-            bfarr_t = opus.opus_int16*(pcm_size*self.channels)
+            #: Bytes per sample
+            self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
 
-            self.buffer = ctypes.cast(ctypes.pointer(bfarr_t()),opus.opus_int16_p)
+            # Read through the entire file, copying the PCM into the
+            # buffer
+            samples = 0
+            while True:
+                # Calculate remaining buffer size
+                remaining_buffer = (
+                    len(buf)
+                    - (buf_ptr.value
+                       - buf_ptr_zero) // self.bytes_per_sample
+                )
 
-            ptr = ctypes.cast(ctypes.pointer(self.buffer), ctypes.POINTER(ctypes.c_void_p))
+                # Convert buffer pointer to the desired type
+                ptr = ctypes.cast(
+                    buf_ptr,
+                    ctypes.POINTER(opus.opus_int16)
+                )
+                
+                # Read the next section of PCM
+                ns = opus.op_read(
+                    of,
+                    ptr,
+                    remaining_buffer,
+                    ogg.c_int_p()
+                )
+                
+                # Check for errors
+                if ns<0:
+                    raise PyOggError(
+                        "Error while reading OggOpus file. "+
+                        "Error code: {}".format(ns)
+                    )
 
-            ptr_init = ptr.contents.value
+                # Increment the pointer
+                buf_ptr.value += (
+                    ns
+                    * self.bytes_per_sample
+                    * self.channels
+                )
 
-            while samples_read.value < pcm_size:
-                ptr.contents.value = ptr_init + samples_read.value*self.channels*2
-                ns = opus.op_read(of, self.buffer , pcm_size*self.channels,ogg.c_int_p())
-                samples_read.value += ns
+                samples += ns
+                
+                # Check if we've finished
+                if ns==0:
+                    break
 
-            ptr.contents.value = ptr_init
-
-            del ptr
-
+            # Close the open file
             opus.op_free(of)
 
-            self.buffer_length = samples_read.value*self.channels*2
-
+            # Opus files are always stored at 48k samples per second
+            #: Number of samples per second (per channel).  Always 48,000.
             self.frequency = 48000
+
+            # Store the buffer as Python bytes
+            #: Raw PCM data from audio file.
+            self.buffer = bytes(buf)
 
         def as_array(self):
             """Returns the buffer as a NumPy array.
 
             The shape of the returned array is in units of (number of
             samples per channel, number of channels).
-
 
             The data type is 16-bit signed integers.
 
@@ -196,19 +267,21 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             import numpy
 
-            bytes_per_sample = ctypes.sizeof(opus.opus_int16)
-
-            return numpy.ctypeslib.as_array(
+            # Convert the bytes buffer to a NumPy array
+            array = numpy.frombuffer(
                 self.buffer,
-                (self.buffer_length
-                 // bytes_per_sample
+                dtype=numpy.int16
+            )
+
+            # Reshape the array
+            return array.reshape(
+                (len(self.buffer)
+                 // self.bytes_per_sample
                  // self.channels,
                  self.channels)
             )
 
-        def as_bytes(self):
-            bytes(self.buffer)
-
+        
     class OpusFileStream:
         def __init__(self, path):
             """Opens an OggOpus file as a stream.
@@ -228,19 +301,27 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 self.of = None
                 raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
 
+            #: Number of channels in audio file
             self.channels = opus.op_channel_count(self.of, -1)
 
+            #: Total PCM Length
             self.pcm_size = opus.op_pcm_total(self.of, -1)
 
+            #: Number of samples per second (per channel)
             self.frequency = 48000
 
             # The buffer size should be (per channel) large enough to
             # hold 120ms (the largest possible Opus frame) at 48kHz.
             # See https://opus-codec.org/docs/opusfile_api-0.7/group__stream__decoding.html#ga963c917749335e29bb2b698c1cb20a10
             self.buffer_size = self.frequency // 1000 * 120 * self.channels
-            self.bfarr_t = opus.opus_int16 * self.buffer_size
-            self.buffer_ptr = ctypes.cast(ctypes.pointer(self.bfarr_t()),opus.opus_int16_p)
+            self.Buf = opus.opus_int16 * self.buffer_size
+            self._buf = self.Buf()
+            self.buffer_ptr = ctypes.cast(
+                ctypes.pointer(self._buf),
+                opus.opus_int16_p
+            )
 
+            #: Bytes per sample
             self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
 
         def __del__(self):
@@ -252,6 +333,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
 
             Returns an array of signed 16-bit integers.  If the file
             is in stereo, the left and right channels are interleaved.
+
+            Returns None when all data has been read.
 
             The array that is returned should be either processed or
             copied before the next call to get_buffer() or
@@ -284,8 +367,8 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
                 ctypes.POINTER(opus.opus_int16 * (samples_read*self.channels))
             )
 
-            # Return the array of the correct size
-            return result_ptr.contents
+            # Convert the array to Python bytes
+            return bytes(result_ptr.contents)
 
         def get_buffer_as_array(self):
             """Provides the buffer as a NumPy array.
@@ -307,20 +390,18 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
             if buf is None:
                 return None
 
-            # Get pointer to first element
-            ptr_to_first_element = ctypes.cast(
-                ctypes.pointer(buf),
-                ctypes.POINTER(opus.opus_int16)
+            # Convert the bytes buffer to a NumPy array
+            array = numpy.frombuffer(
+                buf,
+                dtype=numpy.int16
             )
 
-            # Convert to a numpy array
-            array = numpy.ctypeslib.as_array(
-                buf
-            )
-
-            # Reshape the array and return it
+            # Reshape the array
             return array.reshape(
-                (-1, self.channels)
+                (len(buf)
+                 // self.bytes_per_sample
+                 // self.channels,
+                 self.channels)
             )
 
 else:
@@ -354,9 +435,6 @@ if PYOGG_OPUS_AVAIL:
             # https://opus-codec.org/docs/opus_api-1.3.1/group__opus__encoder.html
             self.set_max_bytes_per_frame(4000)
 
-        # TODO: Check if there is clean up that we need to do when
-        # closing an encoder.
-            
         #
         # User visible methods
         #
@@ -376,8 +454,9 @@ if PYOGG_OPUS_AVAIL:
                 self._channels = n
             else:
                 raise PyOggError(
-                    "Cannot set the number of channels.  Perhaps "+
-                    "encode() was called before set_channels()?"
+                    "Cannot change the number of channels after "+
+                    "the encoder was created.  Perhaps "+
+                    "set_channels() was called after encode()?"
                 )
 
         def set_sampling_frequency(self, samples_per_second):
@@ -404,9 +483,9 @@ if PYOGG_OPUS_AVAIL:
                     )
             else:
                 raise PyOggError(
-                    "Cannot set sampling frequency.  "+
-                    "Perhaps encode() was called before "+
-                    "set_sampling_frequency()?"
+                    "Cannot change the sampling frequency after "+
+                    "the encoder was created.  Perhaps "+
+                    "set_sampling_frequency() was called after encode()?"
                 )
 
         def set_application(self, application):
@@ -436,8 +515,9 @@ if PYOGG_OPUS_AVAIL:
             """
             if self._encoder is not None:
                 raise PyOggError(
-                    "Cannot set application.  Perhaps encode() "+
-                    "was called before set_applicaiton()?"
+                    "Cannot change the application after "+
+                    "the encoder was created.  Perhaps "+
+                    "set_application() was called after encode()?"
                 )
             if application == "voip":
                 self._application = opus.OPUS_APPLICATION_VOIP
@@ -524,7 +604,7 @@ if PYOGG_OPUS_AVAIL:
             if result < 0:
                 raise PyOggError(
                     "An error occurred while encoding to Opus format: "+
-                    opus.opus_strerror(error).decode("utf")
+                    opus.opus_strerror(result).decode("utf")
                 )
 
             # Extract just the valid data as bytes
@@ -602,6 +682,11 @@ if PYOGG_OPUS_AVAIL:
 
         
     class OpusBufferedEncoder(OpusEncoder):
+        # TODO: This could be made more efficient.  We don't need a
+        # deque.  Instead, we need only sufficient PCM storage for one
+        # whole packet.  We know the size of the packet thanks to
+        # set_frame_size().
+        
         def __init__(self):
             super().__init__()
             
@@ -611,6 +696,8 @@ if PYOGG_OPUS_AVAIL:
             # To reduce copying, buffer is a double-ended queue of
             # bytes-objects
             self._buffer = collections.deque()
+
+            # Total number of bytes in the buffer.
             self._buffer_size = 0
 
             
@@ -659,32 +746,82 @@ if PYOGG_OPUS_AVAIL:
             silence to make a complete final frame.
 
             """
+            # Get the encoded packets
+            results = self.encode_with_samples(pcm_bytes, flush=flush)
+
+            # Strip the sample lengths
+            stripped_results = [encoded_packet for
+                                encoded_packet, _ in results]
+
+            return stripped_results
+
+        def encode_with_samples(self, pcm_bytes, flush=False, callback=None):
+            """Gets encoded packets and their number of samples.
+
+            This method returns a list, where each item in the list is
+            a tuple.  The first item in the tuple is an Opus-encoded
+            frame stored as a bytes-object.  The second item in the
+            tuple is the number of samples encoded (excluding
+            silence).
+
+            If `callback` is supplied then this method will instead
+            return an empty list but call the callback for every
+            Opus-encoded frame that would have been returned as a
+            list.  This option has the desireable property of
+            eliminating the copying of the encoded packets, which is
+            required in order to form a list.  The callback should
+            take two arguments, the encoded frame (a Python bytes
+            object) and the number of samples encoded per channel (an
+            int).  The user must either process or copy the data as
+            the data may be overwritten once the callback terminates.
+
+            """
             self._buffer.append(pcm_bytes)
             self._buffer_size += len(pcm_bytes)
 
             results = []
             while True:
                 # Get PCM from the buffer
-                pcm_to_encode = self._get_next_frame(add_silence=flush)
+                result = self._get_next_frame(add_silence=flush)
 
                 # Check if we've sufficient bytes in the buffer
-                if pcm_to_encode is None:
+                if result is None:
                     break
 
+                # Separate the components of the result
+                pcm_to_encode, samples = result
+                
                 # Encode the PCM
                 encoded_packet = super().encode(pcm_to_encode)
 
-                # Create a deep copy (otherwise the contents will be
-                # overwritten if there is a next call to encode
-                result = copy.deepcopy(encoded_packet)
+                if callback is None:
+                    # Create a deep copy (otherwise the contents will be
+                    # overwritten if there is a next call to encode
+                    encoded_packet_copy = copy.deepcopy(encoded_packet)
 
-                # Append the copy of the encoded packet
-                results.append(result)
+                    # Append the copy of the encoded packet
+                    results.append((encoded_packet_copy, samples))
+                else:
+                    # Call the callback with the encoded packet; it is
+                    # the user's responsibility to copy the data if
+                    # required.
+                    callback(encoded_packet, samples)
 
             return results
 
                 
         def _calc_frame_size(self):
+            """Calculates the number of bytes in a frame.
+
+            If the frame size (in milliseconds) and the number of
+            samples per seconds have already been specified, then the
+            frame size in bytes is set.  Otherwise, this method does
+            nothing.
+
+            The frame size is measured in bytes required to store the
+            sample.
+
+            """
             if (self._frame_size_ms is None
                 or self._samples_per_second is None):
                 return
@@ -694,11 +831,22 @@ if PYOGG_OPUS_AVAIL:
                 * self._samples_per_second
                 // 1000
                 * ctypes.sizeof(opus.opus_int16)
+                * self._channels
             )
                 
 
         def _get_next_frame(self, add_silence=False):
+            """Gets the next Opus-encoded frame.
+
+            Returns a tuple where the first item is the Opus-encoded
+            frame and the second item is the number of encoded samples
+            (per channel).
+
+            Returns None if insufficient data is available.
+
+            """
             next_frame = bytes()
+            samples = 0
             
             # Ensure frame size has been specified
             if self._frame_size_bytes is None:
@@ -719,10 +867,17 @@ if PYOGG_OPUS_AVAIL:
                     while len(self._buffer) != 0:
                         next_frame += self._buffer.popleft()
                     self._buffer_size = 0
+                    # Store number of samples (per channel) of actual
+                    # data
+                    samples = (
+                        len(next_frame)
+                        // self._channels
+                        // ctypes.sizeof(opus.opus_int16)
+                    )
                     # Fill remainder of frame with silence
                     bytes_remaining = self._frame_size_bytes - len(next_frame)
                     next_frame += b'\x00' * bytes_remaining
-                    return next_frame
+                    return (next_frame, samples)
                 else:
                     # Insufficient data to fill a frame and we're not
                     # adding silence
@@ -751,7 +906,14 @@ if PYOGG_OPUS_AVAIL:
                     self._buffer.appendleft(buffer_[bytes_remaining:])
                     bytes_remaining = 0
 
-            return next_frame
+            # Calculate number of samples (per channel)
+            samples = (
+                len(next_frame)
+                // self._channels
+                // ctypes.sizeof(opus.opus_int16)
+            )
+
+            return (next_frame, samples)
                     
                     
         
@@ -790,8 +952,9 @@ if PYOGG_OPUS_AVAIL:
                 self._channels = n
             else:
                 raise PyOggError(
-                    "Cannot set the number of channels.  Perhaps "+
-                    "decode() was called before set_channels()?"
+                    "Cannot change the number of channels after "+
+                    "the decoder was created.  Perhaps "+
+                    "set_channels() was called after decode()?"
                 )
             self._create_pcm_buffer()
 
@@ -821,9 +984,9 @@ if PYOGG_OPUS_AVAIL:
                     )
             else:
                 raise PyOggError(
-                    "Cannot set sampling frequency.  "+
-                    "Perhaps encode() was called before "+
-                    "set_sampling_frequency()?"
+                    "Cannot change the sampling frequency after "+
+                    "the decoder was created.  Perhaps "+
+                    "set_sampling_frequency() was called after decode()?"
                 )
             self._create_pcm_buffer()
 
@@ -831,7 +994,7 @@ if PYOGG_OPUS_AVAIL:
             """Decodes an Opus-encoded packet into PCM.
 
             """
-            # If we haven't already created an decoder, do so now
+            # If we haven't already created a decoder, do so now
             if self._decoder is None:
                 self._decoder = self._create_decoder()
 
@@ -848,11 +1011,7 @@ if PYOGG_OPUS_AVAIL:
 
             # Check that we have a PCM buffer
             if self._pcm_buffer is None:
-                raise PyOggError(
-                    "PCM buffer was not configured.  Perhaps "+
-                    "decode() was called before set_channels() "+
-                    "and set_sampling_frequency()?"
-                )
+                raise PyOggError("PCM buffer was not configured.")
 
             # Decode the encoded frame
             result = opus.opus_decode(
@@ -869,7 +1028,7 @@ if PYOGG_OPUS_AVAIL:
                 raise PyOggError(
                     "An error occurred while decoding an Opus-encoded "+
                     "packet: "+
-                    opus.opus_strerror(error).decode("utf")
+                    opus.opus_strerror(result).decode("utf")
                 )
 
             # Extract just the valid data as bytes
@@ -920,7 +1079,7 @@ if PYOGG_OPUS_AVAIL:
                 raise PyOggError(
                     "An error occurred while decoding an Opus-encoded "+
                     "packet: "+
-                    opus.opus_strerror(error).decode("utf")
+                    opus.opus_strerror(result).decode("utf")
                 )
 
             # Extract just the valid data as bytes
@@ -1022,10 +1181,10 @@ else:
             raise PyOggError("The Opus library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
 if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):        
-    class OggOpusWriter(OpusEncoder):
+    class OggOpusWriter(OpusBufferedEncoder):
         """Encodes PCM data into an OggOpus file."""
 
-        def __init__(self, f):
+        def __init__(self, f, custom_pre_skip=None):
             """Construct an OggOpusWriter.
 
             f may be either a string giving the path to the file, or
@@ -1035,8 +1194,20 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             user's responsibility to close the file when they are
             finished with it.
 
+            The Opus encoder requires an amount of "warm up".  When
+            `custom_pre_skip` is None, the required amount of silence
+            is automatically calculated and inserted.  If a custom
+            (non-silent) pre-skip is desired, then `custom_pre_skip`
+            should be specified as the number of samples (per
+            channel).  It is then the user's responsibility to pass
+            the non-silent pre-skip samples to `encode()`.
+
             """
             super().__init__()
+
+            # Store the custom pre skip
+            self._custom_pre_skip = custom_pre_skip
+            
             self._i_opened_the_file = None
             if isinstance(f, str):
                 self._file = builtins.open(f, 'wb')
@@ -1044,7 +1215,6 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             else:
                 # Assume it's already opened file
                 self._file = f
-
 
             # Create a new stream state with a random serial number
             self._stream_state = self._create_stream_state()
@@ -1066,12 +1236,18 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             # Flag to indicate if the headers have been written
             self._headers_written = False
 
-        def __del__(self):
-            self.close()
+            # Flag to indicate that the stream has been finished (the
+            # EOS bit was set in a final packet)
+            self._finished = False
 
-            if self._i_opened_the_file:
-                self._file.close()
-        
+            # Reference to the current encoded packet (written only
+            # when we know if it the last)
+            self._current_encoded_packet = None
+            
+        def __del__(self):
+            if not self._finished:
+                self.close()
+
         #
         # User visible methods
         #
@@ -1080,6 +1256,12 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             """Encode the PCM data as Opus packets wrapped in an Ogg stream.
 
             """
+            # Check that the stream hasn't already been finished
+            if self._finished:
+                raise PyOggError(
+                    "Stream has already ended.  Perhaps close() was "+
+                    "called too early?")
+            
             # If we haven't already created an encoder, do so now
             if self._encoder is None:
                 self._encoder = self._create_encoder()
@@ -1088,54 +1270,90 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             # now.  Then, write a frame of silence to warm up the
             # encoder.
             if not self._headers_written:
-                pre_skip = self._write_headers()
-                self._write_silence(pre_skip)
+                pre_skip = self._write_headers(self._custom_pre_skip)
+                if self._custom_pre_skip is None:
+                    self._write_silence(pre_skip)
+
+            # Call the internal method to encode the bytes
+            self._encode_to_oggopus(pcm_bytes)
+
+            
+        def _encode_to_oggopus(self, pcm_bytes, flush=False):
+            def handle_encoded_packet(encoded_packet, samples):
+                # If the previous packet is valid, write it into the stream
+                if self._packet_valid:
+                    self._write_packet()
                 
-            # If the current packet is valid, write it into the stream
-            if self._packet_valid:
-                self._write_packet()
+                # Keep a copy of the current encoded packet
+                self._current_encoded_packet = copy.deepcopy(encoded_packet)
                 
-            # Increase the count of the number of samples
-            self._count_samples += (
-                len(pcm_bytes)
-                // ctypes.sizeof(opus.opus_int16)
-                // self._channels
-            )
+                # Obtain a pointer to the encoded packet
+                encoded_packet_ptr = ctypes.cast(
+                    self._current_encoded_packet,
+                    ctypes.POINTER(ctypes.c_ubyte)
+                )
+
+                # Increase the count of the number of samples written
+                self._count_samples += samples
+                
+                # Place data into the packet
+                self._ogg_packet.packet = encoded_packet_ptr
+                self._ogg_packet.bytes = len(self._current_encoded_packet)
+                self._ogg_packet.b_o_s = 0
+                self._ogg_packet.e_o_s = 0
+                self._ogg_packet.granulepos = self._count_samples
+                self._ogg_packet.packetno = self._count_packets
+                
+                # Increase the counter of the number of packets
+                # in the stream
+                self._count_packets += 1
+
+                # Mark the packet as valid
+                self._packet_valid = True
 
             # Encode the PCM data into an Opus packet
-            encoded_packet = super().encode(pcm_bytes)
-
-            # Obtain a pointer to the encoded packet
-            encoded_packet_ptr = ctypes.cast(
-                encoded_packet,
-                ctypes.POINTER(ctypes.c_ubyte)
+            super().encode_with_samples(
+                pcm_bytes,
+                flush=flush,
+                callback=handle_encoded_packet
             )
-            
-            # Place data into the packet
-            self._ogg_packet.packet = encoded_packet_ptr
-            self._ogg_packet.bytes = len(encoded_packet)
-            self._ogg_packet.b_o_s = 0
-            self._ogg_packet.e_o_s = 0 # FIXME: It needs to end!
-            self._ogg_packet.granulepos = self._count_samples
-            self._ogg_packet.packetno = self._count_packets
-
-            # Increase the number of packets
-            self._count_packets += 1
-
-            # Mark the packet as valid
-            self._packet_valid = True
 
         def close(self):
+            # Check we haven't already closed this stream
+            if self._finished:
+                # We're attempting to close an already closed stream,
+                # do nothing more.
+                return
+            
+            # Flush the underlying buffered encoder
+            self._encode_to_oggopus(b"", flush=True)
+            
             # The current packet must be the end of the stream, update
             # the packet's details
             self._ogg_packet.e_o_s = 1
 
             # Write the packet to the stream
-            self._write_packet()
+            if self._packet_valid:
+                self._write_packet()
 
             # Flush the stream of any unwritten pages
             self._flush()
-                
+
+            # Mark the stream as finished
+            self._finished = True
+
+            # Close the file if we opened it
+            if self._i_opened_the_file:
+                self._file.close()
+                self._i_opened_the_file = False
+
+            # Clean up the Ogg-related memory
+            ogg.ogg_stream_clear(self._stream_state)
+        
+            # Clean up the reference to the encoded packet (as it must
+            # now have been written)
+            del self._current_encoded_packet
+            
         #
         # Internal methods
         #
@@ -1192,39 +1410,43 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
 
             return signature+data
                    
-        def _write_identification_header_packet(self):
-            # Obtain the algorithmic delay of the Opus encoder.  See
-            # page 27 of https://tools.ietf.org/html/rfc7845
-            delay = opus.opus_int32()
-            result = opus.opus_encoder_ctl(
-                self._encoder,
-                opus.OPUS_GET_LOOKAHEAD_REQUEST,
-                ctypes.pointer(delay)
-            )
-            if result != opus.OPUS_OK:
-                raise PyOggError(
-                    "Failed to obtain the algorithmic delay of "+
-                    "the Opus encoder: "+
-                    opus.opus_strerror(error).decode("utf")
+        def _write_identification_header_packet(self, custom_pre_skip):
+            if custom_pre_skip is not None:
+                # Use the user-specified amount of pre-skip
+                pre_skip = custom_pre_skip
+            else:
+                # Obtain the algorithmic delay of the Opus encoder.  See
+                # page 27 of https://tools.ietf.org/html/rfc7845
+                delay = opus.opus_int32()
+                result = opus.opus_encoder_ctl(
+                    self._encoder,
+                    opus.OPUS_GET_LOOKAHEAD_REQUEST,
+                    ctypes.pointer(delay)
                 )
-            delay_samples = delay.value
+                if result != opus.OPUS_OK:
+                    raise PyOggError(
+                        "Failed to obtain the algorithmic delay of "+
+                        "the Opus encoder: "+
+                        opus.opus_strerror(result).decode("utf")
+                    )
+                delay_samples = delay.value
 
-            # Extra samples are recommended.  See
-            # https://tools.ietf.org/html/rfc7845#page-27
-            extra_samples = 120
+                # Extra samples are recommended.  See
+                # https://tools.ietf.org/html/rfc7845#page-27
+                extra_samples = 120
 
-            # We will just fill a whole frame with silence.  Calculate
-            # the minimum frame length, which we'll use as the
-            # pre-skip.
-            frame_durations = [2.5, 5, 10, 20, 40, 60] # milliseconds
-            frame_lengths = [
-                x * self._samples_per_second // 1000
-                for x in frame_durations
-            ]
-            for frame_length in frame_lengths:
-                if frame_length > delay_samples + extra_samples:
-                    pre_skip = frame_length
-                    break
+                # We will just fill a whole frame with silence.  Calculate
+                # the minimum frame length, which we'll use as the
+                # pre-skip.
+                frame_durations = [2.5, 5, 10, 20, 40, 60] # milliseconds
+                frame_lengths = [
+                    x * self._samples_per_second // 1000
+                    for x in frame_durations
+                ]
+                for frame_length in frame_lengths:
+                    if frame_length > delay_samples + extra_samples:
+                        pre_skip = frame_length
+                        break
 
             # Create the identification header
             id_header = self._make_identification_header(
@@ -1312,9 +1534,11 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                     ctypes.pointer(self._ogg_page)) != 0:
                 self._write_page()
             
-        def _write_headers(self):
+        def _write_headers(self, custom_pre_skip):
             """ Write the two Opus header packets."""
-            pre_skip = self._write_identification_header_packet()
+            pre_skip = self._write_identification_header_packet(
+                custom_pre_skip
+            )
             self._write_comment_header_packet()
 
             # Store that the headers have been written
@@ -1329,7 +1553,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
             return pre_skip
 
         def _write_packet(self):
-            # Place the packet in to the stream
+            # Place the packet into the stream
             result = ogg.ogg_stream_packetin(
                 self._stream_state,
                 self._ogg_packet
@@ -1355,7 +1579,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
                 * ctypes.sizeof(opus.opus_int16)
             )
             silence_pcm = b"\x00" * silence_length
-            self.encode(silence_pcm)
+            self._encode_to_oggopus(silence_pcm)
             
 else:
     class OggOpusWriter:
@@ -1402,12 +1626,16 @@ if PYOGG_FLAC_AVAIL:
 
             self.client_data = ctypes.c_void_p()
 
+            #: Number of channels in audio file.
             self.channels = None
 
+            #: Number of samples per second (per channel).  For
+            #  example, 44100.
             self.frequency = None
 
             self.total_samples = None
 
+            #: Raw PCM data from audio file.
             self.buffer = None
 
             self.buffer_pos = 0
@@ -1438,6 +1666,7 @@ if PYOGG_FLAC_AVAIL:
 
             flac.FLAC__stream_decoder_finish(self.decoder)
 
+            #: Length of buffer
             self.buffer_length = len(self.buffer)
 
     class FlacFileStream:
@@ -1474,8 +1703,11 @@ if PYOGG_FLAC_AVAIL:
 
             self.client_data = ctypes.c_void_p()
 
+            #: Number of channels in audio file.
             self.channels = None
 
+            #: Number of samples per second (per channel).  For
+            #  example, 44100.
             self.frequency = None
 
             self.total_samples = None
@@ -1505,6 +1737,12 @@ if PYOGG_FLAC_AVAIL:
                 raise PyOggError("An error occured when trying to decode the metadata of {}".format(path))
 
         def get_buffer(self):
+            """Returns the buffer and its length.
+
+            Returns [buffer, buffer_length] or None if all data has
+            been read from the file.
+
+            """
             if (flac.FLAC__stream_decoder_get_state(self.decoder) == 4): # end of stream
                 return None
             stream_status = (flac.FLAC__stream_decoder_process_single(self.decoder))
@@ -1527,5 +1765,9 @@ else:
             raise PyOggError("The FLAC libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
 def pyoggSetStreamBufferSize(size):
+    """Changes the maximum size for stream buffers.
+
+    Initial value 8192.
+    """
     global PYOGG_STREAM_BUFFER_SIZE
     PYOGG_STREAM_BUFFER_SIZE = size

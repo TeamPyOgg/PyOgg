@@ -124,13 +124,18 @@ from traceback import print_exc as _print_exc
 
 from .ogg import *
 
-from .library_loader import ExternalLibrary, ExternalLibraryError
+from .library_loader import Library, ExternalLibrary, ExternalLibraryError
 
 __here = os.getcwd()
 libopus = None
 
 try:
-    libopus = ExternalLibrary.load("opus", tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
+    names = {
+        "Windows": "opus.dll",
+        "Darwin": "libopus.0.dylib",
+        "external": "opus"
+    }
+    libopus = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
 except ExternalLibraryError:
     pass
 except:
@@ -139,7 +144,12 @@ except:
 libopusfile = None
 
 try:
-    libopusfile = ExternalLibrary.load("opusfile", tests = [lambda lib: hasattr(lib, "opus_head_parse")])
+    names = {
+        "Windows": "opusfile.dll",
+        "Darwin": "libopusfile.0.dylib",
+        "external": "opusfile"
+    }
+    libopusfile = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_head_parse")])
 except ExternalLibraryError:
     pass
 except:
@@ -148,7 +158,12 @@ except:
 libopusenc = None
 
 try:
-    libopusenc = ExternalLibrary.load("opusenc", tests = [lambda lib: hasattr(lib, "ope_comments_create")])
+    names = {
+        "Windows": "opusenc.dll",
+        "Darwin": "libopusenc.0.dylib",
+        "external": "opusenc"
+    }
+    libopusenc = Library.load(names, tests = [lambda lib: hasattr(lib, "ope_comments_create")])
 except ExternalLibraryError:
     pass
 except:
@@ -336,7 +351,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     opus_uint= c_uint
     opus_uint64 = c_ulonglong
     opus_uint8 = c_int8
-
+    
     # /opus_types
 
     # opus

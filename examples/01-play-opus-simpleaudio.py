@@ -10,16 +10,20 @@
 # On successful execution of this program, you should hear the audio
 # being played and the console will display comething like:
 #
+#    $ python 01-play-opus-simpleaudio.py
 #    Reading Ogg Opus file...
-# 
+#    
 #    Read Ogg Opus file
-#    Channels: 2
-#    Frequency (samples per second): 48000
-#    Buffer Length (bytes): 960000
-#    Shape of numpy array (number of samples per channel, number of channels): (240000, 2)
+#    Channels:
+#       2
+#    Frequency (samples per second):
+#       48000
+#    Buffer Length (bytes):
+#       960000
+#    Shape of numpy array (number of samples per channel, number of channels):
+#       (240000, 2)
 #    
 #    Playing...
-#    Duration: 0:00:05.190433
 #    Finished.
 
 
@@ -39,8 +43,14 @@ except ImportError:
     if should_install_requirements.lower() == "y":
         import subprocess, sys
         
-        install_command = sys.executable + " -m pip install -r " + \
-                              os.path.realpath("01-play-opus-simpleaudio.requirements.txt")
+        install_command = [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "-r",
+            os.path.realpath("01-play-opus-simpleaudio.requirements.txt")
+        ]
 
         popen = subprocess.Popen(install_command,
                                  stdout=subprocess.PIPE, universal_newlines=True)
@@ -68,52 +78,35 @@ from datetime import datetime
 # Specify the filename to read
 filename = "left-right-demo-5s.opus"
 
-
 # Read the file using OpusFile
 print("Reading Ogg Opus file...")
 opus_file = pyogg.OpusFile(filename)
-
 
 # Display summary information about the audio
 print("\nRead Ogg Opus file")
 print("Channels:\n  ", opus_file.channels)
 print("Frequency (samples per second):\n  ",opus_file.frequency)
-print("Buffer Length (bytes):\n  ", opus_file.buffer_length)
+print("Buffer Length (bytes):\n  ", len(opus_file.buffer))
 
-
-# Using the data from the buffer in OpusFile, create a NumPy array
-# with the correct shape.  Note that this does not copy the buffer's
-# data.
-bytes_per_sample = ctypes.sizeof(opus_file.buffer.contents)
-buffer = numpy.ctypeslib.as_array(
-    opus_file.buffer,
-    (opus_file.buffer_length//
-     bytes_per_sample//
-     opus_file.channels,
-     opus_file.channels)
-)
-
+# Get the data as a NumPy array
+buf = opus_file.as_array()
 
 # The shape of the array can be read as
 # "(number of samples per channel, number of channels)".
-print("Shape of numpy array (number of samples per channel, number of channels):\n  ",
-      buffer.shape)
-
+print(
+    "Shape of numpy array (number of samples per channel, "+
+    "number of channels):\n  ",
+    buf.shape
+)
 
 # Play the audio
 print("\nPlaying...")
-start_time = datetime.now()
-play_obj = sa.play_buffer(buffer,
+play_obj = sa.play_buffer(buf,
                           opus_file.channels,
-                          bytes_per_sample,
+                          opus_file.bytes_per_sample,
                           opus_file.frequency)
-
 
 # Wait until sound has finished playing
 play_obj.wait_done()  
 
-
-# Report on the time spent during playback
-end_time = datetime.now()
-print("Duration: "+str(end_time - start_time))
 print("Finished.")

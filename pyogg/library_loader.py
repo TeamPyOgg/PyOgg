@@ -29,6 +29,55 @@ _loaded_libraries = {}
 
 run_tests = lambda lib, tests: [f(lib) for f in tests]
 
+# Get the appropriate directory for the shared libraries depending 
+# on the current platform and architecture
+platform = platform.system()
+lib_dir = None
+if platform == "Darwin":
+    lib_dir = "libs/macos"
+elif platform == "Windows":
+    if architecture == "32bit":
+        lib_dir = "libs/win32"
+    elif architecture == "64bit":
+        lib_dir = "libs/win_amd64"
+
+
+class Library:
+    @staticmethod
+    def load(names, paths = None, tests = []):
+        lib = InternalLibrary.load(names, tests)
+        if lib is None:
+            lib = ExternalLibrary.load(names["external"], paths, tests)
+        return lib
+        
+
+class InternalLibrary:
+    def load(names, tests):
+        # If we do not have a library directory, give up immediately
+        if lib_dir is None:
+            return None
+            
+        # Get the appropriate library filename given the platform
+        try:
+            name = names[platform]
+        except KeyError:
+            return None
+
+        # Attempt to load the library from here
+        path = _here + "/" + lib_dir + "/" + name 
+        try:
+            lib = ctypes.CDLL(path)
+        except OSError as e:
+            return None
+
+        # Check that the library passes the tests
+        if tests and all(run_tests(lib, tests)):
+            return lib
+
+        # Library failed tests
+        return None
+        
+
 class ExternalLibrary:
     @staticmethod
     def load(name, paths = None, tests = []):
