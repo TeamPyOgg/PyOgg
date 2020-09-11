@@ -78,7 +78,7 @@ elif system == 'Windows':
     zip_safe = False
 else:
     print("Unknown system; not packaging any shared libraries")
-    package_data = None
+    package_data = {}
     zip_safe = True
 
 
