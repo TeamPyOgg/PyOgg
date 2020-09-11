@@ -1,3 +1,9 @@
+import ctypes
+
+from . import ogg
+from . import opus
+from .pyogg_error import PyOggError
+
 class OpusFileStream:
     def __init__(self, path):
         """Opens an OggOpus file as a stream.
