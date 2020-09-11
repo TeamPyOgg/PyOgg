@@ -41,7 +41,7 @@ Building the Docs
 If you are unable to find the documentation at [Read the
 Docs](https://pyogg.readthedocs.io/en/latest/), you may build the
 documentation yourself.  First, clone this repository and from within
-the repository's directory, install PyOgg in editable mode using::
+the repository's directory, install PyOgg in editable mode using:
 
     pip install -e .
       
