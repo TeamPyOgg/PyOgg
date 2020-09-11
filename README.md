@@ -1,9 +1,9 @@
 # PyOgg
 
+[![Documentation Status](https://readthedocs.org/projects/pyogg/badge/?version=latest)](https://pyogg.readthedocs.io/en/latest/?badge=latest)
+
 PyOgg provides Python bindings for Xiph.org’s Opus, Vorbis and FLAC
 audio file formats as well as their Ogg container format.
-
-[![Documentation Status](https://readthedocs.org/projects/pyogg/badge/?version=latest)](https://pyogg.readthedocs.io/en/latest/?badge=latest)
 
 PyOgg:
 
@@ -30,17 +30,18 @@ PyOgg is not capable of playing audio, however, you can use Python
 audio libraries such as simpleaudio, sounddevice, or PyOpenAL to play
 audio. PyOpenAL even offers 3D playback.
 
-For more detail, including installation instructions, read the manual
-at ____.
+For more detail, including installation instructions, please see the
+documentation at [Read the
+Docs](https://pyogg.readthedocs.io/en/latest/).
 
 
 Building the Docs
 =================
 
-If you are unable to find the documentation at the previously
-mentioned address, you may build the documentation yourself.  First,
-clone this repository and from within the repository's directory,
-install PyOgg in editable mode using::
+If you are unable to find the documentation at [Read the
+Docs](https://pyogg.readthedocs.io/en/latest/), you may build the
+documentation yourself.  First, clone this repository and from within
+the repository's directory, install PyOgg in editable mode using::
 
     pip install -e .
       
