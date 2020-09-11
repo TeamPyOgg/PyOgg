@@ -12,7 +12,7 @@ before_install:
     fi
     
 install:
-    - python -m pip install twine cibuildwheel numpy pytest
+    - python3 -m pip install twine cibuildwheel numpy pytest
 
 script:
    - python3 setup.py install
