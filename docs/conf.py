@@ -29,7 +29,8 @@ author = 'Zuzu-Typ and Matthew Walker'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary'
+    'sphinx.ext.autosummary',
+    'sphinx_rtd_theme'
 ]
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
 
@@ -58,3 +59,4 @@ html_theme = 'alabaster'
 # -- Requirements for Read the Docs ------------------------------------------
 
 master_doc = 'index'
+html_theme = "sphinx_rtd_theme"

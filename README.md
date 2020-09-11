@@ -45,9 +45,11 @@ the repository's directory, install PyOgg in editable mode using:
 
     pip install -e .
       
-Building the documentation requires Sphinx.  To install Sphinx:
+Building the documentation requires Sphinx and the Read the Docs
+theme:
 
     pip install sphinx
+    pip install sphinx-rtd-theme
 
 Then, enter the `docs` directory and run:
 
