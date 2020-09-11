@@ -3,6 +3,8 @@
 PyOgg provides Python bindings for Xiph.org’s Opus, Vorbis and FLAC
 audio file formats as well as their Ogg container format.
 
+[![Documentation Status](https://readthedocs.org/projects/pyogg/badge/?version=latest)](https://pyogg.readthedocs.io/en/latest/?badge=latest)
+
 PyOgg:
 
 - Reads and streams Opus, Vorbis, and FLAC audio formats in their
