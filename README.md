@@ -1,5 +1,6 @@
 # PyOgg
 
+[![Build Status](https://travis-ci.com/TeamPyOgg/PyOgg.svg?branch=master)](https://travis-ci.com/TeamPyOgg/PyOgg)
 [![Documentation Status](https://readthedocs.org/projects/pyogg/badge/?version=latest)](https://pyogg.readthedocs.io/en/latest/?badge=latest)
 
 PyOgg provides Python bindings for Xiph.org’s Opus, Vorbis and FLAC
