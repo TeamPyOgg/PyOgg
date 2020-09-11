@@ -79,17 +79,33 @@ except:
 
 libvorbisenc = None
 
-try:
-    names = {
-        "Windows": "libvorbisenc.dll",
-        "Darwin": "libvorbisenc.2.dylib",
-        "external": "vorbisenc"
-    }
-    libvorbisenc = Library.load(names, tests = [lambda lib: hasattr(lib, "vorbis_encode_init")])
-except ExternalLibraryError:
-    pass
-except:
-    _print_exc()
+# In some cases, libvorbis may also have the libvorbisenc functionality.
+libvorbis_is_also_libvorbisenc = True
+
+for f in ("vorbis_encode_ctl",
+          "vorbis_encode_init",
+          "vorbis_encode_init_vbr",
+          "vorbis_encode_setup_init",
+          "vorbis_encode_setup_managed",
+          "vorbis_encode_setup_vbr"):
+    if not hasattr(libvorbis, f):
+        libvorbis_is_also_libvorbisenc = False
+        break
+
+if libvorbis_is_also_libvorbisenc:
+    libvorbisenc = libvorbis
+else:
+    try:
+        names = {
+            "Windows": "libvorbisenc.dll",
+            "Darwin": "libvorbisenc.2.dylib",
+            "external": "vorbisenc"
+        }
+        libvorbisenc = Library.load(names, tests = [lambda lib: hasattr(lib, "vorbis_encode_init")])
+    except ExternalLibraryError:
+        pass
+    except:
+        _print_exc()
 
 if libvorbis is None:
     PYOGG_VORBIS_AVAIL = False
