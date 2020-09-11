@@ -10,6 +10,7 @@ jobs:
         language: shell       # 'language: python' is an error on Travis CI Windows
 install:
    - pip install numpy
+   - pip install pytest
    - pip install .
 script:
    - cd tests
