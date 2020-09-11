@@ -1,6 +1,8 @@
 import pytest
 import pyogg
+import os
 
+os.chdir(os.path.dirname(__file__))
 
 # Function to create an encoded packet
 def get_encoded_packet(samples_per_second=48000,

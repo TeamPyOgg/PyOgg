@@ -1,21 +1,84 @@
 language: python
-jobs:
-   include:
-      - name: "Python 3.7 on macOS"
-        os: osx
-        osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
-        language: shell       # 'language: python' is an error on Travis CI macOS
-      - name: "Python 3.8.0 on Windows"
-        os: windows           # Windows 10.0.17134 N/A Build 17134
-        language: shell       # 'language: python' is an error on Travis CI Windows
-        before_install:
-         - choco install python --version 3.8.0
-         - python -m pip install --upgrade pip
-        env: PATH=/c/Python38:/c/Python38/Scripts:$PATH
+python:
+  - 3.8
+  
+before_install:
+  - |
+    if [[ "$TRAVIS_OS_NAME" = windows ]]; then
+        choco install python --version 3.8.0
+        export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
+        # make sure it's on PATH as 'python3'
+        ln -s /c/Python38/python.exe /c/Python38/python3.exe
+    fi
+    
 install:
-   - pip3 install numpy       # All three OSes agree about 'pip3'
-   - pip3 install pytest
-   - pip3 install .
+    - python -m pip install twine cibuildwheel numpy pytest
+
 script:
-   - cd tests
-   - pytest
+   - python3 setup.py install
+   - pytest tests
+   
+stages:
+  - test
+  
+  - name: deploy
+    if: tag IS PRESENT AND repo = TeamPyOgg/PyOgg
+    
+jobs:
+  include:
+  - os: windows
+    language: shell
+    name: Test on Windows
+    
+  - os: osx
+    language: shell
+    name: Test on MacOS
+    
+  - stage: deploy
+    services: docker
+    install: python3 -m pip install twine cibuildwheel
+    script:
+    - python3 -m cibuildwheel --output-dir ./wheelhouse
+    - ls wheelhouse
+    after_success: |
+      if [[ $TRAVIS_TAG ]]; then python3 -m pip install twine; python3 -m twine upload --skip-existing wheelhouse/*.whl; fi
+  - stage: deploy
+    os: osx
+    language: shell
+    install: python3 -m pip install twine cibuildwheel
+    script:
+    - python3 -m cibuildwheel --output-dir ./wheelhouse
+    - ls wheelhouse
+    after_success: |
+      if [[ $TRAVIS_TAG ]]; then python3 -m pip install twine; python3 -m twine upload --skip-existing wheelhouse/*.whl; fi
+  
+  - stage: deploy
+    os: windows
+    language: shell
+    install: python3 -m pip install twine cibuildwheel
+    script:
+    - python3 -m cibuildwheel --output-dir ./wheelhouse
+    - ls wheelhouse
+    after_success: |
+      if [[ $TRAVIS_TAG ]]; then python3 -m pip install twine; python3 -m twine upload --skip-existing wheelhouse/*.whl; fi
+    
+deploy:
+  provider: releases
+  api_key:
+    secure: uDUvWospX5rLzOoYxtSsg1hKaP40iSXhX+QGRzZfa9izA1t+QeAUthjA//mPzqbovsmiWs+G2d8/P0mluD+xDg9KV9KXXw+Vr7PvjnBw7awRO0Qp7KXtZEF7EXkMfh55Xqi2FaTQZdOTZ4GM8bzquW11mNKoWililkbySFh2iV4dWDv50fQqNP+HxVo9St0y3/FVdSrlVONTWiX/HsON/Hv9FUZmUOFS8u2U1NHrtA2TP7lqbvOMwO/FS2B6aJGzMBm+vj0X8bI7AGQT6VXTPpsokJCbU+WBPmJ39VEFUDFzNftfv2G0CaMLSfgD6H4QzgB37PQKeG6npe1ikN596ADntbA20tftESWutt7RxBNIfMkC020rc3qRQs0Bxl6Kw4CfrQ3NIei9BVqlb+5YtopKOtdXSDl+/UyhoBhBG1xKiIEob+BGJ6hDNM2EFsy+LxfCKcjANDKWnUro1Ti5eDQmwRkBq1+TrjHAKzq13ey7U5gj7HcB+UwUw7ENvTeIvQQL6cKTCUdIYTeM7PNSgXyPDLkWhOSQxC3oGla0g7Zob+A3dNwd7dTOEAxUpxSE0X2UKHzwFwPMY8tFSksPL4fHA7rzN1cirehttWWNSlZhGjIwn88joFbTL/klFCnWnpJ2g2TXngvvbpN24s3epe80jTdF5Y4WO5rvSpyn2F4=
+  file: wheelhouse/*
+  file_glob: true
+  skip_cleanup: true
+  on:
+    repo: TeamPyOgg/PyOgg
+    tags: true
+    
+env:
+  global:
+  - CIBW_BUILD=cp38-*
+  - CIBW_TEST_REQUIRES="pytest numpy"
+  - CIBW_TEST_COMMAND="pytest {project}/tests"
+  - CIBW_MANYLINUX_X86_64_IMAGE=manylinux1
+  - CIBW_MANYLINUX_I686_IMAGE=manylinux1
+  - TWINE_USERNAME=__token__
+  # TWINE_PASSWORD is stored on travis-ci.com
