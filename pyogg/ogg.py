@@ -41,8 +41,6 @@ import os
 
 from .library_loader import Library, ExternalLibrary, ExternalLibraryError
 
-class PyOggError(Exception):
-    pass
 
 def get_raw_libname(name):
     name = os.path.splitext(name)[0].lower()
