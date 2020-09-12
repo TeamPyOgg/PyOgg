@@ -1,6 +1,8 @@
 language: python
 jobs:
    include:
+      - name: "Python 3.7.0 on Xenial Linux"
+        python: 3.7           # this works for Linux but is ignored on macOS or Windows
       - name: "Python 3.7 on macOS"
         os: osx
         osx_image: xcode11.2  # Python 3.7.4 running on macOS 10.14.4
