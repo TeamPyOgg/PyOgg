@@ -1,20 +1,9 @@
-import builtins
-import collections
-import copy
 import ctypes
-import random
-import struct
 
 from .pyogg_error import PyOggError
-
-from . import ogg
 from .ogg import PYOGG_OGG_AVAIL
-
-from . import vorbis
-from.vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL, PYOGG_VORBIS_ENC_AVAIL
-
-from . import opus
-from.opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL, PYOGG_OPUS_ENC_AVAIL
+from .vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL, PYOGG_VORBIS_ENC_AVAIL
+from .opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL, PYOGG_OPUS_ENC_AVAIL
 
 from . import flac
 from .flac import PYOGG_FLAC_AVAIL
@@ -37,146 +26,11 @@ __version__ = '0.6.14a7'
 PYOGG_STREAM_BUFFER_SIZE = 8192
 
 if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
-    class VorbisFile:
-        def __init__(self, path):
-            vf = vorbis.OggVorbis_File()
-            error = vorbis.libvorbisfile.ov_fopen(vorbis.to_char_p(path), ctypes.byref(vf))
-            if error != 0:
-                raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
-            
-            info = vorbis.libvorbisfile.ov_info(ctypes.byref(vf), -1)
+    # VorbisFile
+    from .vorbis_file import VorbisFile
+    # VorbisFileStream
+    from .vorbis_file_stream import VorbisFileStream
 
-            #: Number of channels in audio file.
-            self.channels = info.contents.channels
-
-            #: Number of samples per second (per channel), 44100 for
-            #  example.
-            self.frequency = info.contents.rate
-
-            array = (ctypes.c_char*4096)()
-
-            buffer_ = ctypes.cast(ctypes.pointer(array), ctypes.c_char_p)
-
-            self.buffer_array = []
-
-            bitstream = ctypes.c_int()
-            bitstream_pointer = ctypes.pointer(bitstream)
-
-            while True:
-                new_bytes = vorbis.libvorbisfile.ov_read(ctypes.byref(vf), buffer_, 4096, 0, 2, 1, bitstream_pointer)
-                
-                array_ = ctypes.cast(buffer_, ctypes.POINTER(ctypes.c_char*4096)).contents
-                
-                self.buffer_array.append(array_.raw[:new_bytes])
-
-                if new_bytes == 0:
-                    break
-
-            #: Raw PCM data from audio file.
-            self.buffer = b"".join(self.buffer_array)
-
-            vorbis.libvorbisfile.ov_clear(ctypes.byref(vf))
-
-            #: Length of the buffer
-            self.buffer_length = len(self.buffer)
-
-            #: Bytes per sample
-            self.bytes_per_sample = 2 # TODO: Where is this actually defined?
-
-        def as_array(self):
-            """Returns the buffer as a NumPy array.
-
-            The shape of the returned array is in units of (number of
-            samples per channel, number of channels).
-
-            The data type is 16-bit signed integers.
-
-            The buffer is not copied, but rather the NumPy array
-            shares the memory with the buffer.
-
-            """
-
-            import numpy
-
-            # Convert the bytes buffer to a NumPy array
-            array = numpy.frombuffer(
-                self.buffer,
-                dtype=numpy.int16
-            )
-
-            # Reshape the array
-            return array.reshape(
-                (len(self.buffer)
-                 // self.bytes_per_sample
-                 // self.channels,
-                 self.channels)
-            )
-    
-    class VorbisFileStream:
-        def __init__(self, path):
-            self.vf = vorbis.OggVorbis_File()
-            error = vorbis.ov_fopen(path, ctypes.byref(self.vf))
-            if error != 0:
-                raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error))
-                           
-            info = vorbis.ov_info(ctypes.byref(self.vf), -1)
-
-            #: Number of channels in audio file.
-            self.channels = info.contents.channels
-
-            #: Number of samples per second (per channel).  Always
-            #  48,000.
-            self.frequency = info.contents.rate
-
-            array = (ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))()
-
-            self.buffer_ = ctypes.cast(ctypes.pointer(array), ctypes.c_char_p)
-
-            self.bitstream = ctypes.c_int()
-            self.bitstream_pointer = ctypes.pointer(self.bitstream)
-
-            self.exists = True
-
-        def __del__(self):
-            if self.exists:
-                vorbis.ov_clear(ctypes.byref(self.vf))
-            self.exists = False
-
-        def clean_up(self):
-            vorbis.ov_clear(ctypes.byref(self.vf))
-
-            self.exists = False
-
-        def get_buffer(self):
-            """get_buffer() -> bytesBuffer, bufferLength
-
-            Returns None when all data has been read from the file.
-
-            """
-            if not self.exists:
-                return None
-            buffer = []
-            total_bytes_written = 0
-            
-            while True:
-                new_bytes = vorbis.ov_read(ctypes.byref(self.vf), self.buffer_, PYOGG_STREAM_BUFFER_SIZE*self.channels - total_bytes_written, 0, 2, 1, self.bitstream_pointer)
-                
-                array_ = ctypes.cast(self.buffer_, ctypes.POINTER(ctypes.c_char*(PYOGG_STREAM_BUFFER_SIZE*self.channels))).contents
-                
-                buffer.append(array_.raw[:new_bytes])
-
-                total_bytes_written += new_bytes
-
-                if new_bytes == 0 or total_bytes_written >= PYOGG_STREAM_BUFFER_SIZE*self.channels:
-                    break
-
-            out_buffer = b"".join(buffer)
-
-            if total_bytes_written == 0:
-                self.clean_up()
-                return(None)
-
-            return(out_buffer, total_bytes_written)
 else:
     class VorbisFile:
         def __init__(*args, **kw):
