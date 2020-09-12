@@ -1,5 +1,8 @@
 import pytest
 import pyogg
+import os
+
+os.chdir(os.path.dirname(__file__))
 
 def test_error_in_filename():
     # Load a non-existant file
