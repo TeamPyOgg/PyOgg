@@ -100,7 +100,7 @@ else:
 
 if PYOGG_FLAC_AVAIL:
     class FlacFile:
-        def write_callback(self,decoder, frame, buffer, client_data):
+        def write_callback(self, decoder, frame, buffer, client_data):
             multi_channel_buf = _resize_array(buffer.contents, self.channels)
             arr_size = frame.contents.header.blocksize
             if frame.contents.header.channels >= 2:
@@ -124,7 +124,8 @@ if PYOGG_FLAC_AVAIL:
             if not self.buffer:
                 self.total_samples = metadata.contents.data.stream_info.total_samples
                 self.channels = metadata.contents.data.stream_info.channels
-                self.buffer = (flac.FLAC__int16*(self.total_samples * self.channels * 2))()
+                Buffer = flac.FLAC__int16*(self.total_samples * self.channels)
+                self.buffer = Buffer()
                 self.frequency = metadata.contents.data.stream_info.sample_rate
 
         def error_callback(self,decoder, status, client_data):
@@ -155,12 +156,14 @@ if PYOGG_FLAC_AVAIL:
 
             error_callback_ = flac.FLAC__StreamDecoderErrorCallback(self.error_callback)
 
-            init_status = flac.FLAC__stream_decoder_init_file(self.decoder,
-                                          _to_char_p(path),
-                                          write_callback_,
-                                          metadata_callback_,
-                                          error_callback_,
-                                          self.client_data)
+            init_status = flac.FLAC__stream_decoder_init_file(
+                self.decoder,
+                _to_char_p(path), # This will have an issue with Unicode filenames
+                write_callback_,
+                metadata_callback_,
+                error_callback_,
+                self.client_data
+            )
 
             if init_status: # error
                 raise PyOggError("An error occured when trying to open '{}': {}".format(path, flac.FLAC__StreamDecoderInitStatusEnum[init_status]))
@@ -175,8 +178,43 @@ if PYOGG_FLAC_AVAIL:
 
             flac.FLAC__stream_decoder_finish(self.decoder)
 
+            # Convert buffer to bytes
+            self.buffer = bytes(self.buffer)
+            
             #: Length of buffer
             self.buffer_length = len(self.buffer)
+
+            self.bytes_per_sample = ctypes.sizeof(flac.FLAC__int16) # See definition of Buffer in metadata_callback()
+            
+        def as_array(self):
+            """Returns the buffer as a NumPy array.
+
+            The shape of the returned array is in units of (number of
+            samples per channel, number of channels).
+
+            The data type is 16-bit signed integers.
+
+            The buffer is not copied, but rather the NumPy array
+            shares the memory with the buffer.
+
+            """
+
+            import numpy
+
+            # Convert the bytes buffer to a NumPy array
+            array = numpy.frombuffer(
+                self.buffer,
+                dtype=numpy.int16
+            )
+
+            # Reshape the array
+            return array.reshape(
+                (len(self.buffer)
+                 // self.bytes_per_sample
+                 // self.channels,
+                 self.channels)
+            )
+            
 
     class FlacFileStream:
         def write_callback(self,decoder, frame, buffer, client_data):
