@@ -80,6 +80,38 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
             #: Length of the buffer
             self.buffer_length = len(self.buffer)
 
+            #: Bytes per sample
+            self.bytes_per_sample = 2 # TODO: Where is this actually defined?
+
+        def as_array(self):
+            """Returns the buffer as a NumPy array.
+
+            The shape of the returned array is in units of (number of
+            samples per channel, number of channels).
+
+            The data type is 16-bit signed integers.
+
+            The buffer is not copied, but rather the NumPy array
+            shares the memory with the buffer.
+
+            """
+
+            import numpy
+
+            # Convert the bytes buffer to a NumPy array
+            array = numpy.frombuffer(
+                self.buffer,
+                dtype=numpy.int16
+            )
+
+            # Reshape the array
+            return array.reshape(
+                (len(self.buffer)
+                 // self.bytes_per_sample
+                 // self.channels,
+                 self.channels)
+            )
+    
     class VorbisFileStream:
         def __init__(self, path):
             self.vf = vorbis.OggVorbis_File()
