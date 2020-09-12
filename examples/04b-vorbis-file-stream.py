@@ -6,7 +6,10 @@ two approaches.
 
 A typical output:
 
-TODO
+Read 240000 samples from VorbisFile (in 37.7 milliseconds).
+Read 240000 samples from the VorbisFileStream
+(in 60 reads averaging 0.50 milliseconds each).
+VorbisFileStream data was identical to VorbisFile data.
 
 """
 
