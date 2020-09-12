@@ -1,20 +1,13 @@
-import builtins
-import collections
-import copy
 import ctypes
-import random
-import struct
 
 from .pyogg_error import PyOggError
 
-from . import ogg
 from .ogg import PYOGG_OGG_AVAIL
 
 from . import vorbis
-from.vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL, PYOGG_VORBIS_ENC_AVAIL
+from .vorbis import PYOGG_VORBIS_AVAIL, PYOGG_VORBIS_FILE_AVAIL, PYOGG_VORBIS_ENC_AVAIL
 
-from . import opus
-from.opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL, PYOGG_OPUS_ENC_AVAIL
+from .opus import PYOGG_OPUS_AVAIL, PYOGG_OPUS_FILE_AVAIL, PYOGG_OPUS_ENC_AVAIL
 
 from . import flac
 from .flac import PYOGG_FLAC_AVAIL
@@ -65,6 +58,9 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
 
             self.exists = True
 
+            #: Bytes per sample
+            self.bytes_per_sample = 2 # TODO: Where is this defined?
+
         def __del__(self):
             if self.exists:
                 vorbis.ov_clear(ctypes.byref(self.vf))
@@ -104,7 +100,42 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
                 self.clean_up()
                 return(None)
 
-            return(out_buffer, total_bytes_written)
+            return out_buffer
+        
+        def get_buffer_as_array(self):
+            """Provides the buffer as a NumPy array.
+
+            Note that the underlying data type is 16-bit signed
+            integers.
+
+            Does not copy the underlying data, so the returned array
+            should either be processed or copied before the next call
+            to get_buffer() or get_buffer_as_array().
+
+            """
+            import numpy
+
+            # Read the next samples from the stream
+            buf = self.get_buffer()
+
+            # Check if we've come to the end of the stream
+            if buf is None:
+                return None
+
+            # Convert the bytes buffer to a NumPy array
+            array = numpy.frombuffer(
+                buf,
+                dtype=numpy.int16
+            )
+
+            # Reshape the array
+            return array.reshape(
+                (len(buf)
+                 // self.bytes_per_sample
+                 // self.channels,
+                 self.channels)
+            )
+
 else:
     class VorbisFile:
         def __init__(*args, **kw):
