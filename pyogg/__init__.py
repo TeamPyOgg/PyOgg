@@ -169,25 +169,66 @@ if PYOGG_FLAC_AVAIL:
             if not metadata_status: # error
                 raise PyOggError("An error occured when trying to decode the metadata of {}".format(path))
 
-        def get_buffer(self):
-            """Returns the buffer and its length.
+            #: Bytes per sample
+            self.bytes_per_sample = 2
 
-            Returns [buffer, buffer_length] or None if all data has
+        def get_buffer(self):
+            """Returns the buffer.
+
+            Returns buffer (a bytes object) or None if all data has
             been read from the file.
 
             """
-            if (flac.FLAC__stream_decoder_get_state(self.decoder) == 4): # end of stream
-                return None
+            # Attempt to read a single frame of audio
             stream_status = (flac.FLAC__stream_decoder_process_single(self.decoder))
             if not stream_status: # error
                 raise PyOggError("An error occured when trying to decode the audio stream of {}".format(path))
 
-            buffer_ = ctypes.pointer(self.buffer)
-
-            return(buffer_, self.bytes_written)
+            # Check if we encountered the end of the stream
+            if (flac.FLAC__stream_decoder_get_state(self.decoder) == 4): # end of stream
+                return None
+            
+            buffer_as_bytes = bytes(self.buffer)
+            return buffer_as_bytes
 
         def clean_up(self):
             flac.FLAC__stream_decoder_finish(self.decoder)
+
+        def get_buffer_as_array(self):
+            """Provides the buffer as a NumPy array.
+
+            Note that the underlying data type is 16-bit signed
+            integers.
+
+            Does not copy the underlying data, so the returned array
+            should either be processed or copied before the next call
+            to get_buffer() or get_buffer_as_array().
+
+            """
+            import numpy
+
+            # Read the next samples from the stream
+            buf = self.get_buffer()
+
+            # Check if we've come to the end of the stream
+            if buf is None:
+                return None
+
+            # Convert the bytes buffer to a NumPy array
+            array = numpy.frombuffer(
+                buf,
+                dtype=numpy.int16
+            )
+
+            # Reshape the array
+            return array.reshape(
+                (len(buf)
+                 // self.bytes_per_sample
+                 // self.channels,
+                 self.channels)
+            )
+
+            
 else:
     class FlacFile:
         def __init__(*args, **kw):
