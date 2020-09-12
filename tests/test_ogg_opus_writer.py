@@ -1,5 +1,8 @@
 import pytest
 import pyogg
+import os
+
+os.chdir(os.path.dirname(__file__))
 
 def test_duplicate_audio():
     # Load the demonstration file that is exactly 5 seconds long
