@@ -8,6 +8,10 @@
 # the entire file in one PCM encoded buffer.  That buffer is converted
 # to a NumPy array and then played using simpleaudio.
 #
+# To run this example you will need to have installed PyOgg, NumPy,
+# and simpleaudio.  These can be installed using pip with the command:
+#    pip install numpy pyogg simpleaudio
+#
 # On successful execution of this program, you should hear the audio
 # being played and the console will display:
 #
