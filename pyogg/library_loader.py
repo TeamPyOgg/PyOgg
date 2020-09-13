@@ -81,6 +81,11 @@ class InternalLibrary:
 class ExternalLibrary:
     @staticmethod
     def load(name, paths = None, tests = []):
+        if paths is None:
+            paths = []
+        paths = list(paths)
+        paths.append(os.path.realpath(os.path.join(_here, lib_dir)))
+        print(paths)
         if name in _loaded_libraries:
             return _loaded_libraries[name]
         if sys.platform == "win32":
@@ -116,6 +121,7 @@ class ExternalLibrary:
         not_supported = [] # libraries that were found, but are not supported
         for style in _windows_styles:
             candidate = style.format(name)
+            print(candidate)
             library = ctypes.util.find_library(candidate)
             if library:
                 try:
