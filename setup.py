@@ -67,12 +67,14 @@ elif system == 'Windows':
     package_data = {
         'pyogg': ["libs/"+win_dir+"/"+libname for libname in [
             'libFLAC.dll',
-            'libogg.dll',
+            'ogg.dll',
             'libvorbis.dll',
             'libvorbisfile.dll',
             'opus.dll',
             'opusenc.dll',
-            'opusfile.dll'
+            'opusfile.dll',
+            'libssl-1_1-x64.dll',
+            'libcrypto-1_1-x64.dll'
         ]]
     }
     zip_safe = False

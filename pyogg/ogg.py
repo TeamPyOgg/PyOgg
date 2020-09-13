@@ -58,7 +58,7 @@ libogg = None
 
 try:
     names = {
-        "Windows": "libogg.dll",
+        "Windows": "ogg.dll",
         "Darwin": "libogg.0.dylib",
         "external": "ogg"
     }
