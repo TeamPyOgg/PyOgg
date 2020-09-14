@@ -34,6 +34,12 @@ jobs:
     language: shell
     name: Test on MacOS
     
+  - os: xenial
+    language: python
+    name: Test on Linux (Ubuntu Xenial)
+    before_install:
+    - sudo apt-get -y install libopus0 libopusfile0 libvorbisfile3
+    
   - stage: deploy
     services: docker
     install: python3 -m pip install twine cibuildwheel
