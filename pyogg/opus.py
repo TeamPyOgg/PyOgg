@@ -185,6 +185,10 @@ else:
     PYOGG_OPUS_ENC_AVAIL = False
 
 if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
+    # Sanity check also satisfies mypy type checking
+    assert libopus is not None
+    assert libopusfile is not None
+    
     # all definitions
     OPE_API_VERSION =0
 
@@ -504,7 +508,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
     or_p = POINTER(OpusRepacketizer)
 
     libopus.opus_repacketizer_get_size.restype = c_int
-    libopus.opus_repacketizer_get_size.argtypes = None
+    libopus.opus_repacketizer_get_size.argtypes = []
 
     def opus_repacketizer_get_size():
         return libopus.opus_repacketizer_get_size()
@@ -516,7 +520,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
         return libopus.opus_repacketizer_init(rp)
 
     libopus.opus_repacketizer_create.restype = or_p
-    libopus.opus_repacketizer_create.argtypes = None
+    libopus.opus_repacketizer_create.argtypes = []
 
     def opus_repacketizer_create():
         return libopus.opus_repacketizer_create()
@@ -582,7 +586,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
         return libopus.opus_strerror(error)
 
     libopus.opus_get_version_string.restype = c_char_p
-    libopus.opus_get_version_string.argtypes = None
+    libopus.opus_get_version_string.argtypes = []
 
     def opus_get_version_string():
         return libopus.opus_get_version_string()
@@ -1141,6 +1145,9 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
 
 
     if PYOGG_OPUS_ENC_AVAIL:
+        # Sanity check also satisfies mypy type checking
+        assert libopusenc is not None
+        
         ope_write_func = ctypes.CFUNCTYPE(c_int,
                                           c_void_p,
                                           c_uchar_p,
@@ -1173,7 +1180,7 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
         ooe_p = POINTER(OggOpusEnc)
 
         libopusenc.ope_comments_create.restype = ooc_p
-        libopusenc.ope_comments_create.argtypes = None
+        libopusenc.ope_comments_create.argtypes = []
 
         def ope_comments_create():
             return libopusenc.ope_comments_create()
@@ -1293,13 +1300,13 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
             return libopusenc.ope_strerror(error)
 
         libopusenc.ope_get_version_string.restype = c_char_p
-        libopusenc.ope_get_version_string.argtypes = None
+        libopusenc.ope_get_version_string.argtypes = []
 
         def ope_get_version_string():
             return libopusenc.ope_get_version_string()
 
         libopusenc.ope_get_abi_version.restype = c_int
-        libopusenc.ope_get_abi_version.argtypes = None
+        libopusenc.ope_get_abi_version.argtypes = []
 
         def ope_get_abi_version():
             return libopusenc.ope_get_abi_version()

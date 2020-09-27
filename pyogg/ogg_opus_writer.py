@@ -3,7 +3,11 @@ import copy
 import ctypes
 import random
 import struct
-from typing import Optional, BinaryIO
+from typing import (
+    Optional,
+    Union,
+    BinaryIO
+)
 
 from . import ogg
 from . import opus

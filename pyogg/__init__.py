@@ -32,13 +32,13 @@ if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
     from .vorbis_file_stream import VorbisFileStream
 
 else:
-    class VorbisFile:
+    class VorbisFile: # type: ignore
         def __init__(*args, **kw):
             if not PYOGG_OGG_AVAIL:
                 raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
             raise PyOggError("The Vorbis libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
-    class VorbisFileStream:
+    class VorbisFileStream: # type: ignore
         def __init__(*args, **kw):
             if not PYOGG_OGG_AVAIL:
                 raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
@@ -53,13 +53,13 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL):
     from .opus_file_stream import OpusFileStream
 
 else:
-    class OpusFile:
+    class OpusFile: # type: ignore
         def __init__(*args, **kw):
             if not PYOGG_OGG_AVAIL:
                 raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
             raise PyOggError("The Opus libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
-    class OpusFileStream:
+    class OpusFileStream: # type: ignore
         def __init__(*args, **kw):
             if not PYOGG_OGG_AVAIL:
                 raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
@@ -74,15 +74,15 @@ if PYOGG_OPUS_AVAIL:
     from .opus_decoder import OpusDecoder
 
 else:
-    class OpusEncoder:
+    class OpusEncoder: # type: ignore
         def __init__(*args, **kw):
             raise PyOggError("The Opus library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
-    class OpusBufferedEncoder:
+    class OpusBufferedEncoder: # type: ignore
         def __init__(*args, **kw):
             raise PyOggError("The Opus library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
         
-    class OpusDecoder:
+    class OpusDecoder: # type: ignore
         def __init__(*args, **kw):
             raise PyOggError("The Opus library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
@@ -91,7 +91,7 @@ if (PYOGG_OGG_AVAIL and PYOGG_OPUS_AVAIL):
     from .ogg_opus_writer import OggOpusWriter
     
 else:
-    class OggOpusWriter:
+    class OggOpusWriter: # type: ignore
         def __init__(*args, **kw):
             if not PYOGG_OGG_AVAIL:
                 raise PyOggError("The Ogg library wasn't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
@@ -199,7 +199,7 @@ if PYOGG_FLAC_AVAIL:
 
             """
 
-            import numpy
+            import numpy # type: ignore
 
             # Convert the bytes buffer to a NumPy array
             array = numpy.frombuffer(
@@ -303,11 +303,11 @@ if PYOGG_FLAC_AVAIL:
         def clean_up(self):
             flac.FLAC__stream_decoder_finish(self.decoder)
 else:
-    class FlacFile:
+    class FlacFile: # type: ignore
         def __init__(*args, **kw):
             raise PyOggError("The FLAC libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 
-    class FlacFileStream:
+    class FlacFileStream: # type: ignore
         def __init__(*args, **kw):
             raise PyOggError("The FLAC libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
 

@@ -204,7 +204,7 @@ class OpusFile:
 
         """
 
-        import numpy
+        import numpy # type: ignore
 
         # Convert the bytes buffer to a NumPy array
         array = numpy.frombuffer(
