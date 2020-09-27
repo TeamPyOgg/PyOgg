@@ -68,12 +68,14 @@ except ExternalLibraryError:
 except:
     _print_exc()
 
-if libogg:
+if libogg is not None:
     PYOGG_OGG_AVAIL = True
 else:
     PYOGG_OGG_AVAIL = False
 
 if PYOGG_OGG_AVAIL:
+    # Sanity check also satisfies mypy type checking
+    assert libogg is not None
 
     # ctypes
     c_ubyte_p = POINTER(c_ubyte)
@@ -167,6 +169,25 @@ if PYOGG_OGG_AVAIL:
                     ("granulepos", ogg_int64_t),
 
                     ("packetno", ogg_int64_t)]
+
+        def __str__(self):
+            bos = ""
+            if self.b_o_s:
+                bos = "beginning of stream, "
+            eos = ""
+            if self.e_o_s:
+                eos = "end of stream, "
+
+            # Converting the data will cause a seg-fault if the memory isn't valid
+            data = bytes(self.packet[0:self.bytes])
+            value = (
+                f"Ogg Packet <{hex(id(self))}>: " +
+                f"number {self.packetno}, " +
+                f"granule position {self.granulepos}, " +
+                bos + eos +
+                f"{self.bytes} bytes"
+            )
+            return value
 
     class ogg_sync_state(ctypes.Structure):
         """
@@ -468,26 +489,26 @@ if PYOGG_OGG_AVAIL:
     libogg.ogg_sync_clear.restype = c_int
     libogg.ogg_sync_clear.argtypes = [oy_p]
 
-    def oggpack_writeinit(oy):
-        return libogg.oggpack_writeinit(oy)
+    def ogg_sync_clear(oy):
+        return libogg.ogg_sync_clear(oy)
 
     libogg.ogg_sync_reset.restype = c_int
     libogg.ogg_sync_reset.argtypes = [oy_p]
 
-    def oggpack_writeinit(oy):
-        return libogg.oggpack_writeinit(oy)
+    def ogg_sync_reset(oy):
+        return libogg.ogg_sync_reset(oy)
 
     libogg.ogg_sync_destroy.restype = c_int
     libogg.ogg_sync_destroy.argtypes = [oy_p]
 
-    def oggpack_writeinit(oy):
-        return libogg.oggpack_writeinit(oy)
+    def ogg_sync_destroy(oy):
+        return libogg.ogg_sync_destroy(oy)
 
     try:
         libogg.ogg_sync_check.restype = c_int
         libogg.ogg_sync_check.argtypes = [oy_p]
-        def oggpack_writeinit(oy):
-            return libogg.oggpack_writeinit(oy)
+        def ogg_sync_check(oy):
+            return libogg.ogg_sync_check(oy)
     except:
         pass
 

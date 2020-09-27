@@ -120,9 +120,9 @@ class OpusBufferedEncoder(OpusEncoder):
             encoded_packet = super().encode(pcm_to_encode)
 
             if callback is None:
-                # Create a deep copy (otherwise the contents will be
+                # Create a copy (otherwise the contents will be
                 # overwritten if there is a next call to encode
-                encoded_packet_copy = copy.deepcopy(encoded_packet)
+                encoded_packet_copy = bytes(encoded_packet)
 
                 # Append the copy of the encoded packet
                 results.append((encoded_packet_copy, samples))

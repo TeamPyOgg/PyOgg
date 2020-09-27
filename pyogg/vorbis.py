@@ -122,8 +122,16 @@ if libvorbisenc is None:
 else:
     PYOGG_VORBIS_ENC_AVAIL = True
 
+# FIXME: What's the story with the lack of checking for PYOGG_VORBIS_ENC_AVAIL?
+# We just seem to assume that it's available.
 
-if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
+if PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
+    # Sanity check also satisfies mypy type checking
+    assert libogg is not None
+    assert libvorbis is not None
+    assert libvorbisfile is not None
+
+
     # codecs
     class vorbis_info(ctypes.Structure):
         """
@@ -256,10 +264,10 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     def vorbis_comment_add(vc, comment):
         libvorbis.vorbis_comment_add(vc, comment)
 
-    libvorbis.vorbis_info_clear.restype = None
-    libvorbis.vorbis_info_clear.argtypes = [vc_p, c_char_p, c_char_p]
-    def vorbis_info_init(vc, tag, comment):
-        libvorbis.vorbis_info_init(vc, tag, comment)
+    libvorbis.vorbis_comment_add_tag.restype = None
+    libvorbis.vorbis_comment_add_tag.argtypes = [vc_p, c_char_p, c_char_p]
+    def vorbis_comment_add_tag(vc, tag, comment):
+        libvorbis.vorbis_comment_add_tag(vc, tag, comment)
 
     libvorbis.vorbis_comment_query.restype = c_char_p
     libvorbis.vorbis_comment_query.argtypes = [vc_p, c_char_p, c_int]

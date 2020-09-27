@@ -3,6 +3,7 @@ import copy
 import ctypes
 import random
 import struct
+from typing import Optional, BinaryIO
 
 from . import ogg
 from . import opus
@@ -12,7 +13,9 @@ from .pyogg_error import PyOggError
 class OggOpusWriter(OpusBufferedEncoder):
     """Encodes PCM data into an OggOpus file."""
 
-    def __init__(self, f, custom_pre_skip=None):
+    def __init__(self, 
+                 f: Union[BinaryIO, str],
+                 custom_pre_skip: Optional[int] = None) -> None:
         """Construct an OggOpusWriter.
 
         f may be either a string giving the path to the file, or
@@ -20,7 +23,8 @@ class OggOpusWriter(OpusBufferedEncoder):
 
         If f is an already-opened file handle, then it is the
         user's responsibility to close the file when they are
-        finished with it.
+        finished with it.  The file should be opened for writing 
+        in binary (not text) mode.
 
         The Opus encoder requires an amount of "warm up".  When
         `custom_pre_skip` is None, the required amount of silence
@@ -72,7 +76,7 @@ class OggOpusWriter(OpusBufferedEncoder):
         # when we know if it the last)
         self._current_encoded_packet = None
 
-    def __del__(self):
+    def __del__(self) -> None:
         if not self._finished:
             self.close()
 
@@ -80,7 +84,7 @@ class OggOpusWriter(OpusBufferedEncoder):
     # User visible methods
     #
 
-    def encode(self, pcm_bytes):
+    def encode(self, pcm_bytes: memoryview) -> None:
         """Encode the PCM data as Opus packets wrapped in an Ogg stream.
 
         """
@@ -106,23 +110,35 @@ class OggOpusWriter(OpusBufferedEncoder):
         self._encode_to_oggopus(pcm_bytes)
 
 
-    def _encode_to_oggopus(self, pcm_bytes, flush=False):
+    def _encode_to_oggopus(self, pcm_bytes, flush: bool = False):
         def handle_encoded_packet(encoded_packet, samples):
             # If the previous packet is valid, write it into the stream
             if self._packet_valid:
                 self._write_packet()
 
-            # Keep a copy of the current encoded packet
-            self._current_encoded_packet = copy.deepcopy(encoded_packet)
+            # Copy the data of the current encoded packet
+            self._current_encoded_packet = bytes(encoded_packet)
+
+            # DEBUG
+            data = bytes(self._current_encoded_packet[0:len(self._current_encoded_packet)])
 
             # Obtain a pointer to the encoded packet
             encoded_packet_ptr = ctypes.cast(
                 self._current_encoded_packet,
                 ctypes.POINTER(ctypes.c_ubyte)
             )
+            #EncodedPacketPtr = ctypes.POINTER(ctypes.c_ubyte)
+            #encoded_packet_ptr = EncodedPacketPtr(encoded_packet_as_ubyte)
 
             # Increase the count of the number of samples written
             self._count_samples += samples
+
+            # DEBUG
+            print("self._current_encoded_packet:", self._current_encoded_packet)
+            data = bytes(self._current_encoded_packet[0:len(self._current_encoded_packet)])
+            #data = bytes(encoded_packet_ptr[0:4000])
+            #print("data:", data)
+            data = bytes(encoded_packet_ptr[0:len(self._current_encoded_packet)])
 
             # Place data into the packet
             self._ogg_packet.packet = encoded_packet_ptr
@@ -131,6 +147,10 @@ class OggOpusWriter(OpusBufferedEncoder):
             self._ogg_packet.e_o_s = 0
             self._ogg_packet.granulepos = self._count_samples
             self._ogg_packet.packetno = self._count_packets
+
+            # DEBUG
+            data = bytes(self._ogg_packet.packet[0:len(self._current_encoded_packet)])
+            print("self._ogg_packet:",self._ogg_packet)
 
             # Increase the counter of the number of packets
             # in the stream

@@ -3,6 +3,11 @@ import ctypes.util
 import os
 import sys
 import platform
+from typing import (
+    Optional,
+    Dict,
+    List
+)
 
 _here = os.path.dirname(__file__)
 
@@ -25,17 +30,16 @@ elif architecture == "64bit":
         for style in ["{}", "lib{}"]:
             _windows_styles.append(style.format("{}"+arch_style))
 
-_loaded_libraries = {}
 
 run_tests = lambda lib, tests: [f(lib) for f in tests]
 
 # Get the appropriate directory for the shared libraries depending 
 # on the current platform and architecture
-platform = platform.system()
+platform_ = platform.system()
 lib_dir = None
-if platform == "Darwin":
+if platform_ == "Darwin":
     lib_dir = "libs/macos"
-elif platform == "Windows":
+elif platform_ == "Windows":
     if architecture == "32bit":
         lib_dir = "libs/win32"
     elif architecture == "64bit":
@@ -44,7 +48,7 @@ elif platform == "Windows":
 
 class Library:
     @staticmethod
-    def load(names, paths = None, tests = []):
+    def load(names: Dict[str, str], paths: Optional[List[str]] = None, tests = []) -> Optional[ctypes.CDLL]:
         lib = InternalLibrary.load(names, tests)
         if lib is None:
             lib = ExternalLibrary.load(names["external"], paths, tests)
@@ -52,14 +56,15 @@ class Library:
         
 
 class InternalLibrary:
-    def load(names, tests):
+    @staticmethod
+    def load(names: Dict[str, str], tests) -> Optional[ctypes.CDLL]:
         # If we do not have a library directory, give up immediately
         if lib_dir is None:
             return None
             
         # Get the appropriate library filename given the platform
         try:
-            name = names[platform]
+            name = names[platform_]
         except KeyError:
             return None
 
@@ -77,6 +82,8 @@ class InternalLibrary:
         # Library failed tests
         return None
         
+# Cache of libraries that have already been loaded
+_loaded_libraries: Dict[str, ctypes.CDLL] = {}
 
 class ExternalLibrary:
     @staticmethod

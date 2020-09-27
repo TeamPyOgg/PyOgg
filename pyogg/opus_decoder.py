@@ -86,7 +86,7 @@ class OpusDecoder:
 
         # Create pointer to encoded bytes
         encoded_bytes_ptr = ctypes.cast(
-            encoded_bytes,
+            encoded_bytes[0],
             ctypes.POINTER(ctypes.c_ubyte)
         )
 
@@ -123,7 +123,17 @@ class OpusDecoder:
             * ctypes.sizeof(opus.opus_int16)
             * self._channels
         )
-        return bytes(self._pcm_buffer)[:end_valid_data]
+        
+        # Create memoryview of PCM buffer to avoid copying data during slice.
+        mv = memoryview(self._pcm_buffer)
+        
+        # Cast memoryview to chars
+        mv = mv.cast('c')
+        
+        # Slice memoryview to extract only valid data
+        mv = mv[:end_valid_data]
+        
+        return mv
 
 
     def decode_missing_packet(self, frame_duration):
