@@ -36,7 +36,7 @@ def init_decoder(encoded_packet=None,
                  channels=1,
                  set_sampling_frequency=True,
                  set_channels=True,
-                 decode_packet=True):
+                 decode_packet=True) -> pyogg.OpusDecoder:
     decoder = pyogg.OpusDecoder()
     if set_sampling_frequency:
         decoder.set_sampling_frequency(samples_per_second)
@@ -50,7 +50,7 @@ def init_decoder(encoded_packet=None,
     return decoder
 
 
-def test_decode():
+def test_decode() -> None:
     # Create encoded packet
     samples_per_second = 48000
     channels = 2
@@ -81,7 +81,7 @@ def test_decode():
     assert len(pcm) == expected_length
 
     
-def test_decode_missing_packet():
+def test_decode_missing_packet() -> None:
     samples_per_second = 48000
     channels = 2
     duration_ms = 20
@@ -114,36 +114,36 @@ def test_decode_missing_packet():
         decoder.decode_missing_packet(invalid_duration_ms)
     
 
-def test_invalid_number_of_channels():
+def test_invalid_number_of_channels() -> None:
     with pytest.raises(pyogg.PyOggError):
         decoder = init_decoder(None, channels=3)
 
-def test_change_number_of_channels():
+def test_change_number_of_channels() -> None:
     encoded_packet = get_encoded_packet()
     decoder = init_decoder(encoded_packet)
     with pytest.raises(pyogg.PyOggError):
         decoder.set_channels(1)
 
-def test_invalid_sampling_frequency():
+def test_invalid_sampling_frequency() -> None:
     with pytest.raises(pyogg.PyOggError):
         decoder = init_decoder(None, samples_per_second=44100)
 
-def test_change_sampling_frequency():
+def test_change_sampling_frequency() -> None:
     encoded_packet = get_encoded_packet()
     decoder = init_decoder(encoded_packet)
     with pytest.raises(pyogg.PyOggError):
         decoder.set_sampling_frequency(24000)
 
-def test_sampling_frequency_not_set():
+def test_sampling_frequency_not_set() -> None:
     with pytest.raises(pyogg.PyOggError):
         decoder = init_decoder(None, set_sampling_frequency=False)
 
-def test_channels_not_set():
+def test_channels_not_set() -> None:
     with pytest.raises(pyogg.PyOggError):
         decoder = init_decoder(None, set_channels=False)
 
-def test_pcm_buffer_not_configured():
+def test_pcm_buffer_not_configured() -> None:
     decoder = pyogg.OpusDecoder()
     decoder._decoder = "invalid"
     with pytest.raises(pyogg.PyOggError):
-        decoder.decode(b"")
+        decoder.decode(memoryview(bytearray(b"")))

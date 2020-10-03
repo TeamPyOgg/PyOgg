@@ -1,6 +1,7 @@
 import collections
 import copy
 import ctypes
+from typing import Optional, ByteString, List, Tuple, Deque
 
 from . import opus
 from .opus_encoder import OpusEncoder
@@ -12,21 +13,21 @@ class OpusBufferedEncoder(OpusEncoder):
     # whole packet.  We know the size of the packet thanks to
     # set_frame_size().
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-        self._frame_size_ms = None
-        self._frame_size_bytes = None
+        self._frame_size_ms: Optional[float] = None
+        self._frame_size_bytes: Optional[int] = None
 
         # To reduce copying, buffer is a double-ended queue of
         # bytes-objects
-        self._buffer = collections.deque()
+        self._buffer: Deque[memoryview]  = collections.deque()
 
         # Total number of bytes in the buffer.
         self._buffer_size = 0
 
 
-    def set_frame_size(self, frame_size):
+    def set_frame_size(self, frame_size: float) -> None:
         """ Set the desired frame duration (in milliseconds).
 
         Valid options are 2.5, 5, 10, 20, 40, or 60ms.
@@ -46,12 +47,12 @@ class OpusBufferedEncoder(OpusEncoder):
         self._calc_frame_size()
 
 
-    def set_sampling_frequency(self, samples_per_second):
+    def set_sampling_frequency(self, samples_per_second: int) -> None:
         super().set_sampling_frequency(samples_per_second)
         self._calc_frame_size()
 
 
-    def encode(self, pcm_bytes, flush=False):
+    def encode_with_buffering(self, pcm: memoryview, flush: bool = False) -> List[memoryview]:
         """Produces Opus-encoded packets from buffered PCM.
 
         First, pcm_bytes are appended to the end of the internal buffer.
@@ -72,7 +73,7 @@ class OpusBufferedEncoder(OpusEncoder):
 
         """
         # Get the encoded packets
-        results = self.encode_with_samples(pcm_bytes, flush=flush)
+        results = self.encode_with_samples(pcm, flush=flush)
 
         # Strip the sample lengths
         stripped_results = [encoded_packet for
@@ -80,7 +81,11 @@ class OpusBufferedEncoder(OpusEncoder):
 
         return stripped_results
 
-    def encode_with_samples(self, pcm_bytes, flush=False, callback=None):
+    def encode_with_samples(self,
+                            pcm_bytes,
+                            flush=False,
+                            callback=None
+                            ) -> List[Tuple[memoryview, int]]:
         """Gets encoded packets and their number of samples.
 
         This method returns a list, where each item in the list is
@@ -122,7 +127,9 @@ class OpusBufferedEncoder(OpusEncoder):
             if callback is None:
                 # Create a copy (otherwise the contents will be
                 # overwritten if there is a next call to encode
-                encoded_packet_copy = bytes(encoded_packet)
+                encoded_packet_copy = memoryview(
+                    bytearray(encoded_packet)
+                )
 
                 # Append the copy of the encoded packet
                 results.append((encoded_packet_copy, samples))

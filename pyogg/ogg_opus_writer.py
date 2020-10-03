@@ -12,13 +12,15 @@ from typing import (
 from . import ogg
 from . import opus
 from .opus_buffered_encoder import OpusBufferedEncoder
+#from .opus_encoder import OpusEncoder
 from .pyogg_error import PyOggError
 
-class OggOpusWriter(OpusBufferedEncoder):
+class OggOpusWriter():
     """Encodes PCM data into an OggOpus file."""
 
     def __init__(self, 
                  f: Union[BinaryIO, str],
+                 encoder: OpusBufferedEncoder,
                  custom_pre_skip: Optional[int] = None) -> None:
         """Construct an OggOpusWriter.
 
@@ -30,16 +32,22 @@ class OggOpusWriter(OpusBufferedEncoder):
         finished with it.  The file should be opened for writing 
         in binary (not text) mode.
 
-        The Opus encoder requires an amount of "warm up".  When
-        `custom_pre_skip` is None, the required amount of silence
-        is automatically calculated and inserted.  If a custom
+        The encoder should be a
+        OpusBufferedEncoder and should be fully configured before the
+        first call to the `write()` method.
+
+        The Opus encoder requires an amount of "warm up" and when
+        stored in an Ogg container that warm up can be skipped.  When
+        `custom_pre_skip` is None, the required amount of warm up
+        silence is automatically calculated and inserted.  If a custom
         (non-silent) pre-skip is desired, then `custom_pre_skip`
-        should be specified as the number of samples (per
-        channel).  It is then the user's responsibility to pass
-        the non-silent pre-skip samples to `encode()`.
+        should be specified as the number of samples (per channel).
+        It is then the user's responsibility to pass the non-silent
+        pre-skip samples to `encode()`.
 
         """
-        super().__init__()
+        # Store the Opus encoder
+        self._encoder = encoder
 
         # Store the custom pre skip
         self._custom_pre_skip = custom_pre_skip
@@ -88,8 +96,10 @@ class OggOpusWriter(OpusBufferedEncoder):
     # User visible methods
     #
 
-    def encode(self, pcm_bytes: memoryview) -> None:
-        """Encode the PCM data as Opus packets wrapped in an Ogg stream.
+    def write(self, pcm: memoryview) -> None:
+        """Encode the PCM and write out the Ogg Opus stream.
+
+        Encoders the PCM using the provided encoder.
 
         """
         # Check that the stream hasn't already been finished
@@ -97,10 +107,6 @@ class OggOpusWriter(OpusBufferedEncoder):
             raise PyOggError(
                 "Stream has already ended.  Perhaps close() was "+
                 "called too early?")
-
-        # If we haven't already created an encoder, do so now
-        if self._encoder is None:
-            self._encoder = self._create_encoder()
 
         # If we haven't already written out the headers, do so
         # now.  Then, write a frame of silence to warm up the
@@ -111,10 +117,12 @@ class OggOpusWriter(OpusBufferedEncoder):
                 self._write_silence(pre_skip)
 
         # Call the internal method to encode the bytes
-        self._encode_to_oggopus(pcm_bytes)
+        self._write_to_oggopus(pcm)
 
 
-    def _encode_to_oggopus(self, pcm_bytes, flush: bool = False):
+    def _write_to_oggopus(self, pcm, flush: bool = False):
+        assert self._encoder is not None
+        
         def handle_encoded_packet(encoded_packet, samples):
             # If the previous packet is valid, write it into the stream
             if self._packet_valid:
@@ -164,8 +172,8 @@ class OggOpusWriter(OpusBufferedEncoder):
             self._packet_valid = True
 
         # Encode the PCM data into an Opus packet
-        super().encode_with_samples(
-            pcm_bytes,
+        self._encoder.encode_with_samples(
+            pcm,
             flush=flush,
             callback=handle_encoded_packet
         )
@@ -178,7 +186,7 @@ class OggOpusWriter(OpusBufferedEncoder):
             return
 
         # Flush the underlying buffered encoder
-        self._encode_to_oggopus(b"", flush=True)
+        self._write_to_oggopus(b"", flush=True)
 
         # The current packet must be the end of the stream, update
         # the packet's details
@@ -247,7 +255,7 @@ class OggOpusWriter(OpusBufferedEncoder):
         """
         signature = b"OpusHead"
         version = 1
-        output_channels = self._channels
+        output_channels = self._encoder._channels
         output_gain = 0
         channel_mapping_family = 0
         data = struct.pack(
@@ -268,20 +276,8 @@ class OggOpusWriter(OpusBufferedEncoder):
             pre_skip = custom_pre_skip
         else:
             # Obtain the algorithmic delay of the Opus encoder.  See
-            # page 27 of https://tools.ietf.org/html/rfc7845
-            delay = opus.opus_int32()
-            result = opus.opus_encoder_ctl(
-                self._encoder,
-                opus.OPUS_GET_LOOKAHEAD_REQUEST,
-                ctypes.pointer(delay)
-            )
-            if result != opus.OPUS_OK:
-                raise PyOggError(
-                    "Failed to obtain the algorithmic delay of "+
-                    "the Opus encoder: "+
-                    opus.opus_strerror(result).decode("utf")
-                )
-            delay_samples = delay.value
+            # https://tools.ietf.org/html/rfc7845#page-27
+            delay_samples = self._encoder.get_algorithmic_delay()
 
             # Extra samples are recommended.  See
             # https://tools.ietf.org/html/rfc7845#page-27
@@ -292,7 +288,7 @@ class OggOpusWriter(OpusBufferedEncoder):
             # pre-skip.
             frame_durations = [2.5, 5, 10, 20, 40, 60] # milliseconds
             frame_lengths = [
-                x * self._samples_per_second // 1000
+                x * self._encoder._samples_per_second // 1000
                 for x in frame_durations
             ]
             for frame_length in frame_lengths:
@@ -427,8 +423,8 @@ class OggOpusWriter(OpusBufferedEncoder):
         """ Write a frame of silence. """
         silence_length = (
             samples
-            * self._channels
+            * self._encoder._channels
             * ctypes.sizeof(opus.opus_int16)
         )
         silence_pcm = b"\x00" * silence_length
-        self._encode_to_oggopus(silence_pcm)
+        self._write_to_oggopus(silence_pcm)

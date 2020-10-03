@@ -76,7 +76,7 @@ class OpusDecoder:
             )
         self._create_pcm_buffer()
 
-    def decode(self, encoded_bytes):
+    def decode(self, encoded_bytes: memoryview):
         """Decodes an Opus-encoded packet into PCM.
 
         """
@@ -84,9 +84,14 @@ class OpusDecoder:
         if self._decoder is None:
             self._decoder = self._create_decoder()
 
+        # Create a ctypes array from the memoryview (without copying
+        # data)
+        Buffer = ctypes.c_char * len(encoded_bytes)
+        encoded_bytes_ctypes = Buffer.from_buffer(encoded_bytes)
+            
         # Create pointer to encoded bytes
         encoded_bytes_ptr = ctypes.cast(
-            encoded_bytes[0],
+            encoded_bytes_ctypes,
             ctypes.POINTER(ctypes.c_ubyte)
         )
 

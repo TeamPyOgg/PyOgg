@@ -1,20 +1,22 @@
 import pytest
 import pyogg
 import os
+from typing import Callable
 
 os.chdir(os.path.dirname(__file__))
 
 # Function to create an encoder and encode a sample of silence
-def init_encoder(samples_per_second=48000,
-                 application="audio",
-                 channels=1,
-                 frame_size=20, #ms
-                 duration_ms=60, #ms
-                 set_sampling_frequency=True,
-                 set_application=True,
-                 set_channels=True,
-                 set_frame_size=True,
-                 callback=None):
+def init_encoder(samples_per_second:int = 48000,
+                 application: str = "audio",
+                 channels: int = 1,
+                 frame_size: int = 20, #ms
+                 duration_ms: int = 60, #ms
+                 set_sampling_frequency: bool = True,
+                 set_application: bool = True,
+                 set_channels: bool = True,
+                 set_frame_size: bool = True,
+                 callback: Callable[[bytes, int], None] = None
+                 ) -> pyogg.OpusBufferedEncoder:
     encoder = pyogg.OpusBufferedEncoder()
     if set_application:
         encoder.set_application(application)
@@ -37,7 +39,7 @@ def init_encoder(samples_per_second=48000,
 
     if callback is None:
         # Encode the sample
-        _ = encoder.encode(buf)
+        _ = encoder.encode_with_buffering(buf)
     else:
         # Encode with callback
         encoder.encode_with_samples(buf, callback=callback)
@@ -45,11 +47,11 @@ def init_encoder(samples_per_second=48000,
     return encoder
     
 
-def test_encode():
+def test_encode() -> None:
     encoder = init_encoder()
 
 
-def test_callback():
+def test_callback() -> None:
     # Calculate expected number of samples
     frame_size_ms = 10
     samples_per_second = 48000
@@ -89,11 +91,11 @@ def test_callback():
     )
     
 
-def test_invalid_frame_size():
+def test_invalid_frame_size() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(frame_size=15)
     
 
-def test_frame_size_not_set():
+def test_frame_size_not_set() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(set_frame_size=False)

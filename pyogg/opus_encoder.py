@@ -1,5 +1,5 @@
 import ctypes
-from typing import Optional, Union
+from typing import Optional, Union, ByteString
 
 from . import opus
 from .pyogg_error import PyOggError
@@ -142,13 +142,14 @@ class OpusEncoder:
         #print(self._output_buffer[:])
         
         
-
     def encode(self, pcm: Union[bytes, bytearray, memoryview]) -> memoryview:
         """Encodes PCM data into an Opus frame.
 
-        pcm_bytes must be formatted as bytes, with each sample
-        taking two bytes (signed 16-bit integers; interleaved
-        left, then right channels if in stereo).
+        `pcm` must be formatted as bytes-like, with each sample taking
+        two bytes (signed 16-bit integers; interleaved left, then
+        right channels if in stereo).
+
+        If `pcm` is not writeable, a copy of the array will be made.
 
         """
         # If we haven't already created an encoder, do so now
@@ -182,9 +183,24 @@ class OpusEncoder:
                 "was not one of the acceptable values."
             )
 
+        # Create a ctypes object sharing the memory of the PCM data
+        PcmCtypes = ctypes.c_ubyte * len(pcm)
+        try:
+            # Attempt to share the PCM memory
+            
+            # Unfortunately, as at 2020-09-27, the type hinting for
+            # read-only and writeable buffer protocols was a
+            # work-in-progress.  The following only works for writable
+            # cases, but the method's parameters include a read-only
+            # possibility (bytes), thus we ignore mypy's error.
+            pcm_ctypes = PcmCtypes.from_buffer(pcm) # type: ignore[arg-type]
+        except TypeError:
+            # The data must be copied if it's not writeable
+            pcm_ctypes = PcmCtypes.from_buffer_copy(pcm)
+
         # Create a pointer to the PCM data
         pcm_ptr = ctypes.cast(
-            pcm,
+            pcm_ctypes,
             ctypes.POINTER(opus.opus_int16)
         )
 
@@ -207,8 +223,18 @@ class OpusEncoder:
                 opus.opus_strerror(result).decode("utf")
             )
 
-        # Get memoryview of buffer so that the slice operation doesn't copy the data
-        mv = memoryview(self._output_buffer)
+        # Get memoryview of buffer so that the slice operation doesn't
+        # copy the data.
+        #
+        # Unfortunately, as at 2020-09-27, the type hints for
+        # memoryview do not include ctype arrays.  This is because
+        # there is no currently accepted manner to label a class as
+        # supporting the buffer protocol.  However, it's clearly a
+        # work in progress.  For more information, see:
+        # * https://bugs.python.org/issue27501
+        # * https://github.com/python/typing/issues/593
+        # * https://github.com/python/typeshed/pull/4232
+        mv = memoryview(self._output_buffer) # type: ignore
         
         # Cast the memoryview to char
         mv = mv.cast('c')
@@ -234,7 +260,47 @@ class OpusEncoder:
         
         return valid_data_as_bytes
 
+    
+    def get_algorithmic_delay(self):
+        """Gets the total samples of delay added by the entire codec.
 
+        This can be queried by the encoder and then the provided
+        number of samples can be skipped on from the start of the
+        decoder's output to provide time aligned input and
+        output. From the perspective of a decoding application the
+        real data begins this many samples late.
+
+        The decoder contribution to this delay is identical for all
+        decoders, but the encoder portion of the delay may vary from
+        implementation to implementation, version to version, or even
+        depend on the encoder's initial configuration. Applications
+        needing delay compensation should call this method rather than
+        hard-coding a value.
+
+        """
+        # If we haven't already created an encoder, do so now
+        if self._encoder is None:
+            self._encoder = self._create_encoder()
+        
+        # Obtain the algorithmic delay of the Opus encoder.  See
+        # https://tools.ietf.org/html/rfc7845#page-27 
+        delay = opus.opus_int32()
+
+        result = opus.opus_encoder_ctl(
+            self._encoder,
+            opus.OPUS_GET_LOOKAHEAD_REQUEST,
+            ctypes.pointer(delay)
+        )
+        if result != opus.OPUS_OK:
+            raise PyOggError(
+                "Failed to obtain the algorithmic delay of "+
+                "the Opus encoder: "+
+                opus.opus_strerror(result).decode("utf")
+            )
+        delay_samples = delay.value
+        return delay_samples
+
+    
     #
     # Internal methods
     #
