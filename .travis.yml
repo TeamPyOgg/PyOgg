@@ -1,14 +1,14 @@
 language: python
 python:
-  - 3.8
+  - 3.9
   
 before_install:
   - |
     if [[ "$TRAVIS_OS_NAME" = windows ]]; then
-        choco install python --version 3.8.0
-        export PATH="/c/Python38:/c/Python38/Scripts:$PATH"
+        choco install python --version 3.9
+        export PATH="/c/Python39:/c/Python39/Scripts:$PATH"
         # make sure it's on PATH as 'python3'
-        ln -s /c/Python38/python.exe /c/Python38/python3.exe
+        ln -s /c/Python39/python.exe /c/Python39/python3.exe
     fi
     
 install:
@@ -82,7 +82,7 @@ deploy:
     
 env:
   global:
-  - CIBW_BUILD=cp38-*
+  - CIBW_BUILD=cp39-*
   - CIBW_TEST_REQUIRES="pytest numpy"
   - CIBW_TEST_COMMAND="pytest {project}/tests"
   - CIBW_MANYLINUX_X86_64_IMAGE=manylinux1
