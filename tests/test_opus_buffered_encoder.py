@@ -39,7 +39,7 @@ def init_encoder(samples_per_second:int = 48000,
 
     if callback is None:
         # Encode the sample
-        _ = encoder.encode_with_buffering(buf)
+        _ = encoder.encode_with_buffering(memoryview(buf))
     else:
         # Encode with callback
         encoder.encode_with_samples(buf, callback=callback)

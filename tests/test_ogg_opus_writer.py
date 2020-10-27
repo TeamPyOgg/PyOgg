@@ -15,7 +15,7 @@ def test_zero_length_audio() -> None:
     encoder.set_frame_size(20) # milliseconds
     writer = pyogg.OggOpusWriter(filename, encoder)
     
-    buf = b""
+    buf = memoryview(b"")
     
     writer.write(buf)
 
@@ -45,7 +45,7 @@ def test_one_frame_audio() -> None:
     bytes_per_sample = 2
     buf = b"\x00" * (bytes_per_sample * frame_size_samples)
     
-    writer.write(buf)
+    writer.write(memoryview(buf))
 
     # Close the file
     writer.close()
@@ -76,7 +76,7 @@ def test_n_frames_audio() -> None:
     bytes_per_sample = 2
     buf = b"\x00" * (bytes_per_sample * frame_size_samples * n)
     
-    writer.write(buf)
+    writer.write(memoryview(buf))
 
     # Close the file
     writer.close()
@@ -146,7 +146,7 @@ def test_custom_pre_skip() -> None:
         * samples_of_pre_skip
     )
     
-    writer.write(buf)
+    writer.write(memoryview(buf))
 
     # Close the file
     writer.close()
@@ -158,8 +158,9 @@ def test_custom_pre_skip() -> None:
 
 # Error handling tests
 # ====================
-    
-class MockFile:
+
+# Subclassing from 'str' is purely to eliminate mypy type errors
+class MockFile(str): 
     def write(self, data):
         pass
 
@@ -174,7 +175,7 @@ def test_error_after_close() -> None:
     writer = pyogg.OggOpusWriter(mock_file, encoder)
     writer.close()
     with pytest.raises(pyogg.PyOggError):
-        writer.write(None)
+        writer.write(memoryview(b""))
 
         
 def test_close_twice() -> None:

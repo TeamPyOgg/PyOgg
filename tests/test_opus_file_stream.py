@@ -72,7 +72,7 @@ def test_same_data_as_opus_file():
     
     
 def test_same_data_as_opus_file_using_as_array():
-    import numpy
+    import numpy # type: ignore
     
     # Load the demonstration file that is exactly 5 seconds long
     filename = "../examples/left-right-demo-5s.opus"
