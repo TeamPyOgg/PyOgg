@@ -184,6 +184,7 @@ class OpusEncoder:
             self._output_buffer_ptr,
             self._max_bytes_per_frame
         )
+        return 0
 
         # Check for any errors
         if result < 0:
@@ -194,6 +195,71 @@ class OpusEncoder:
 
         # Extract just the valid data as bytes
         return bytes(self._output_buffer[:result])
+
+    def get_probs(self, pcm_bytes):
+    # def encode(self, pcm_bytes):
+        """Encodes PCM data into an Opus frame.
+
+        pcm_bytes must be formatted as bytes, with each sample
+        taking two bytes (signed 16-bit integers; interleaved
+        left, then right channels if in stereo).
+
+        """
+        # If we haven't already created an encoder, do so now
+        if self._encoder is None:
+            self._encoder = self._create_encoder()
+
+        # Calculate the effective frame duration of the given PCM
+        # data.  Calculate it in units of 0.1ms in order to avoid
+        # floating point comparisons.
+        bytes_per_sample = 2
+        frame_size = (
+            len(pcm_bytes) # bytes
+            // bytes_per_sample
+            // self._channels
+        )
+        frame_duration = (
+            (10*frame_size)
+            // (self._samples_per_second//1000)
+        )
+
+        # Check that we have a valid frame size
+        if int(frame_duration) not in [25, 50, 100, 200, 400, 600]:
+            raise PyOggError(
+                "The effective frame duration ({:.1f} ms) "
+                .format(frame_duration/10)+
+                "was not one of the acceptable values."
+            )
+
+        # Create a pointer to the PCM data
+        pcm_ptr = ctypes.cast(pcm_bytes,
+                              ctypes.POINTER(opus.opus_int16))
+
+
+        # Create an int giving the frame size per channel
+        frame_size_int = ctypes.c_int(frame_size)
+
+        # Encode PCM
+        result = opus.opus_get_probs(
+            self._encoder,
+            pcm_ptr,
+            frame_size_int,
+            self._output_buffer_ptr,
+            self._max_bytes_per_frame
+        )
+        # result from unt32 to float
+        result = result/2147483647.0
+        return result
+
+        # # Check for any errors
+        # if result < 0:
+        #     raise PyOggError(
+        #         "An error occurred while encoding to Opus format: "+
+        #         opus.opus_strerror(result).decode("utf")
+        #     )
+
+        # # Extract just the valid data as bytes
+        # return bytes(self._output_buffer[:result])
 
 
     #

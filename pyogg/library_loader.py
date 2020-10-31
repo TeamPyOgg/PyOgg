@@ -40,6 +40,8 @@ elif platform == "Windows":
         lib_dir = "libs/win32"
     elif architecture == "64bit":
         lib_dir = "libs/win_amd64"
+elif platform == "Linux":
+    lib_dir = "../../../opus/.libs/"
 
 
 class Library:

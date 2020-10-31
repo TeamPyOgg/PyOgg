@@ -192,6 +192,7 @@ try:
     names = {
         "Windows": "opus.dll",
         "Darwin": "libopus.0.dylib",
+        "Linux": "libopus.so.0",
         "external": "opus"
     }
     libopus = Library.load(names, tests = [lambda lib: hasattr(lib, "opus_encoder_get_size")])
@@ -443,6 +444,12 @@ if PYOGG_OPUS_AVAIL and PYOGG_OPUS_FILE_AVAIL:
 
     def opus_encode(st, pcm, frame_size, data, max_data_bytes):
         return libopus.opus_encode(st, pcm, frame_size, data, max_data_bytes)
+
+    libopus.opus_get_probs.restype = opus_int32
+    libopus.opus_get_probs.argtypes = [oe_p, opus_int16_p, c_int, c_uchar_p, opus_int32]
+
+    def opus_get_probs(st, pcm, frame_size, data, max_data_bytes):
+        return libopus.opus_get_probs(st, pcm, frame_size, data, max_data_bytes)
 
     libopus.opus_encode_float.restype = opus_int32
     libopus.opus_encode_float.argtypes = [oe_p, c_float_p, c_int, c_uchar_p, opus_int32]
