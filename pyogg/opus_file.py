@@ -108,8 +108,8 @@ class OpusFile:
         # Check for errors 
         if error.value != 0:
             raise PyOggError(
-                "File couldn't be opened or doesn't exist. "+
-                "Error code: {}".format(error.value)
+                ("File '{}' couldn't be opened or doesn't exist. "+
+                 "Error code: {}").format(path, error.value)
             )
 
         # Extract the number of channels in the newly opened file

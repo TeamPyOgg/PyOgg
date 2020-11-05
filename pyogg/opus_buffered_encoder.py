@@ -1,7 +1,7 @@
-import collections
 import copy
 import ctypes
-from typing import Optional, ByteString, List, Tuple, Deque
+from typing import Optional, ByteString, List, Tuple, Callable
+import warnings
 
 from . import opus
 from .opus_encoder import OpusEncoder
@@ -19,12 +19,12 @@ class OpusBufferedEncoder(OpusEncoder):
         self._frame_size_ms: Optional[float] = None
         self._frame_size_bytes: Optional[int] = None
 
-        # To reduce copying, buffer is a double-ended queue of
-        # bytes-objects
-        self._buffer: Deque[memoryview]  = collections.deque()
+        # Buffer contains the bytes required for the next
+        # frame.
+        self._buffer: Optional[ctypes.Array] = None
 
-        # Total number of bytes in the buffer.
-        self._buffer_size = 0
+        # Location of the next free byte in the buffer
+        self._buffer_index = 0
 
 
     def set_frame_size(self, frame_size: float) -> None:
@@ -82,9 +82,9 @@ class OpusBufferedEncoder(OpusEncoder):
         return stripped_results
 
     def encode_with_samples(self,
-                            pcm_bytes,
-                            flush=False,
-                            callback=None
+                            pcm_bytes: memoryview,
+                            flush: bool = False,
+                            callback: Callable[[memoryview,int],None] = None
                             ) -> List[Tuple[memoryview, int]]:
         """Gets encoded packets and their number of samples.
 
@@ -106,40 +106,208 @@ class OpusBufferedEncoder(OpusEncoder):
         the data may be overwritten once the callback terminates.
 
         """
-        self._buffer.append(pcm_bytes)
-        self._buffer_size += len(pcm_bytes)
+        print("\nlen(pcm_bytes):", len(pcm_bytes), "   flush:",flush)
 
+        # If there's no work to do return immediately
+        if len(pcm_bytes) == 0 and flush == False:
+            return [] # no work to do
+
+        # Sanity checks
+        if self._frame_size_ms is None:
+            raise PyOggError("Frame size must be set before encoding")
+        assert self._frame_size_bytes is not None
+        assert self._channels is not None
+        assert self._buffer is not None
+        assert self._buffer_index is not None
+
+        # Local variable initialisation
         results = []
-        while True:
-            # Get PCM from the buffer
-            result = self._get_next_frame(add_silence=flush)
+        pcm_index = 0
+        pcm_len = len(pcm_bytes)
 
-            # Check if we've sufficient bytes in the buffer
-            if result is None:
-                break
-
-            # Separate the components of the result
-            pcm_to_encode, samples = result
-
-            # Encode the PCM
-            encoded_packet = super().encode(pcm_to_encode)
-
+        # 'Cast' memoryview of PCM to ctypes Array
+        Buffer = ctypes.c_ubyte * len(pcm_bytes)
+        try:
+            pcm_ctypes = Buffer.from_buffer(pcm_bytes)
+        except TypeError:
+            warnings.warn(
+                "Because PCM was read-only, an extra memory "+
+                "copy was required; consider storing PCM in "+
+                "writable memory."
+            )
+            pcm_ctypes = Buffer.from_buffer(pcm_bytes)
+            
+        # Either store the encoded packet to return at the end of the
+        # method or immediately call the callback with the encoded
+        # packet.
+        def store_or_callback(encoded_packet: memoryview, samples: int) -> None:
+            print(f"store or call back with {samples} samples")
             if callback is None:
-                # Create a copy (otherwise the contents will be
-                # overwritten if there is a next call to encode
-                encoded_packet_copy = memoryview(
-                    bytearray(encoded_packet)
-                )
-
-                # Append the copy of the encoded packet
-                results.append((encoded_packet_copy, samples))
+                # Store the result
+                results.append((encoded_packet, samples))
             else:
-                # Call the callback with the encoded packet; it is
-                # the user's responsibility to copy the data if
-                # required.
+                # Call the callback
                 callback(encoded_packet, samples)
 
-        return results
+        # Fill the remainder of the buffer with silence and encode it.
+        # The associated number of samples are only that of actual
+        # data, not the added silence.
+        def flush_buffer() -> None:
+            print("In flush_buffer()")
+            # Sanity checks to satisfy mypy
+            assert self._buffer_index is not None
+            assert self._channels is not None
+            assert self._buffer is not None
+            
+            # If the buffer is already empty, we have no work to do
+            print("self._buffer_index:",self._buffer_index)
+            if self._buffer_index == 0:
+                return
+
+            # Store the number of samples currently in the buffer
+            samples = (
+                self._buffer_index
+                // self._channels
+                // ctypes.sizeof(opus.opus_int16)
+            )
+
+            # Fill the buffer with silence
+            ctypes.memset(
+                # destination
+                ctypes.byref(self._buffer, self._buffer_index),
+                # value
+                0,
+                # count
+                len(self._buffer) - self._buffer_index
+            )
+            
+            # Encode the PCM
+            # As at 2020-11-05, mypy is unaware that ctype Arrays
+            # support the buffer protocol.
+            encoded_packet = self.encode(memoryview(self._buffer)) # type: ignore
+
+            # Either store the encoded packet or call the
+            # callback
+            store_or_callback(encoded_packet, samples)
+
+            
+        # Copy the data remaining from the provided PCM into the
+        # buffer.  Flush if required.
+        def copy_insufficient_data():
+            print("in copy_insufficient_data")
+            
+            # Calculate remaining data
+            remaining_data = len(pcm_bytes) - pcm_index
+                
+            # Copy the data into the buffer.
+            ctypes.memmove(
+                # destination
+                ctypes.byref(self._buffer, self._buffer_index),
+                # source
+                ctypes.byref(pcm_ctypes, pcm_index),
+                # count
+                remaining_data
+            )
+
+            self._buffer_index += remaining_data
+            print("Set self._buffer_index to",self._buffer_index)
+
+            # If we've been asked to flush the buffer then do so
+            if flush:
+                flush_buffer()
+            
+        # Loop through the provided PCM and the current buffer,
+        # encoding as we have full packets.
+        while True:
+            print("top of while loop")
+            # There are two possibilities at this point: either we
+            # have previously unencoded data still in the buffer or we
+            # do not
+            if self._buffer_index == 0:
+                print("We do not have unencoded data")
+                # We do not have unencoded data
+
+                # We are free to progress through the PCM that has
+                # been provided encoding frames without copying any
+                # bytes.  Once there is insufficient data remaining
+                # for a complete frame, that data should be copied
+                # into the buffer and we have finished.
+                if pcm_len - pcm_index >= self._frame_size_bytes:
+                    print("We don't need to copy data; we've got enough for a frame")
+                    # We have enough data remaining in the provided
+                    # PCM to encode an entire frame without copying
+                    # any data.
+                    frame_data = pcm_bytes[
+                        pcm_index:pcm_index+self._frame_size_bytes
+                    ]
+
+                    # Update the PCM index
+                    pcm_index += self._frame_size_bytes
+
+                    # Store number of samples (per channel) of actual
+                    # data
+                    samples = (
+                        len(frame_data)
+                        // self._channels
+                        // ctypes.sizeof(opus.opus_int16)
+                    )
+                    
+                    # Encode the PCM
+                    encoded_packet = super().encode(frame_data)
+
+                    # Either store the encoded packet or call the
+                    # callback
+                    store_or_callback(encoded_packet, samples)
+
+                else:
+                    print("We need to copy data to the buffer as we don't have enough for a frame")
+                    # We do not have enough data to fill a frame.
+                    # Copy the data into the buffer.
+                    copy_insufficient_data()
+                    return results
+
+            else:
+                print("We have unencoded data")
+                # We have unencoded data.
+
+                # Copy the provided PCM into the buffer (up until the
+                # buffer is full).  If we can fill it, then we can
+                # encode the filled buffer and continue.  If we can't
+                # fill it then we've finished.
+                data_required = len(self._buffer) - self._buffer_index
+                if pcm_len >= data_required:
+                    # We have sufficient data to fill the buffer
+                    # Copy data into the buffer
+                    assert pcm_index == 0
+                    remaining = self._buffer_index - len(self._buffer)
+                    print("pcm_bytes:", pcm_bytes)
+                    ctypes.memmove(
+                        # destination
+                        ctypes.byref(self._buffer, self._buffer_index),
+                        # source
+                        pcm_bytes,
+                        # count
+                        remaining
+                    )
+                    #self._buffer[self._buffer_index:] = \
+                    #    pcm_bytes[:remaining]
+                    pcm_index += remaining
+                    
+                    # Encode the PCM
+                    encoded_packet = super().encode(
+                        # Memoryviews of ctypes do work, even though
+                        # mypy complains.
+                        memoryview(self._buffer) # type: ignore
+                    )
+
+                    # Either store the encoded packet or call the
+                    # callback
+                    store_or_callback(encoded_packet, samples)
+                else:
+                    # We have insufficient data to fill the buffer
+                    # Copy the data into the buffer.
+                    copy_insufficient_data()
+                    return results
 
 
     def _calc_frame_size(self):
@@ -165,6 +333,10 @@ class OpusBufferedEncoder(OpusEncoder):
             * ctypes.sizeof(opus.opus_int16)
             * self._channels
         )
+
+        # Allocate space for the buffer
+        Buffer = ctypes.c_ubyte * self._frame_size_bytes
+        self._buffer = Buffer()
 
 
     def _get_next_frame(self, add_silence=False):

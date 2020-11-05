@@ -15,7 +15,7 @@ def test_zero_length_audio() -> None:
     encoder.set_frame_size(20) # milliseconds
     writer = pyogg.OggOpusWriter(filename, encoder)
     
-    buf = memoryview(b"")
+    buf = memoryview(bytearray(b""))
     
     writer.write(buf)
 

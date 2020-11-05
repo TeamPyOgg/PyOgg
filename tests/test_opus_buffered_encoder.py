@@ -29,7 +29,7 @@ def init_encoder(samples_per_second:int = 48000,
 
     # Create a sample of silence
     bytes_per_sample = 2
-    buf = (
+    buf = bytearray(
         b"\x00"
         * bytes_per_sample
         * channels
@@ -42,7 +42,7 @@ def init_encoder(samples_per_second:int = 48000,
         _ = encoder.encode_with_buffering(memoryview(buf))
     else:
         # Encode with callback
-        encoder.encode_with_samples(buf, callback=callback)
+        encoder.encode_with_samples(memoryview(buf), callback=callback)
                                     
     return encoder
     

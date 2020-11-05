@@ -152,6 +152,7 @@ class OpusEncoder:
         If `pcm` is not writeable, a copy of the array will be made.
 
         """
+        print("In OpusEncoder::encode()")
         # If we haven't already created an encoder, do so now
         if self._encoder is None:
             self._encoder = self._create_encoder()
@@ -252,11 +253,11 @@ class OpusEncoder:
             buf,
             ctypes.POINTER(ctypes.c_ubyte)
         )
-        print("ptr[0:4000]:")
-        print(ptr[0:4000])
+        #print("ptr[0:4000]:")
+        #print(ptr[0:4000])
         
-        print("self._output_buffer[0:4000]:")
-        print(self._output_buffer[0:4000])
+        #print("self._output_buffer[0:4000]:")
+        #print(self._output_buffer[0:4000])
         
         return valid_data_as_bytes
 

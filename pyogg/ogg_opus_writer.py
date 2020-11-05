@@ -86,7 +86,7 @@ class OggOpusWriter():
 
         # Reference to the current encoded packet (written only
         # when we know if it the last)
-        self._current_encoded_packet = None
+        self._current_encoded_packet: Optional[bytes] = None
 
     def __del__(self) -> None:
         if not self._finished:
@@ -120,10 +120,10 @@ class OggOpusWriter():
         self._write_to_oggopus(pcm)
 
 
-    def _write_to_oggopus(self, pcm, flush: bool = False):
+    def _write_to_oggopus(self, pcm: memoryview, flush: bool = False) -> None:
         assert self._encoder is not None
         
-        def handle_encoded_packet(encoded_packet, samples):
+        def handle_encoded_packet(encoded_packet: memoryview, samples: int) -> None:
             # If the previous packet is valid, write it into the stream
             if self._packet_valid:
                 self._write_packet()
@@ -131,12 +131,14 @@ class OggOpusWriter():
             # Copy the data of the current encoded packet
             self._current_encoded_packet = bytes(encoded_packet)
 
-            # DEBUG
-            data = bytes(self._current_encoded_packet[0:len(self._current_encoded_packet)])
+            # # DEBUG
+            # data = bytes(self._current_encoded_packet[0:len(self._current_encoded_packet)])
 
             # Obtain a pointer to the encoded packet
-            encoded_packet_ptr = ctypes.cast(
-                self._current_encoded_packet,
+            # As at 2020-11-05, mypy was not aware that ctypes could
+            # obtain a pointer from a bytes object.
+            encoded_packet_ptr = ctypes.cast( 
+                self._current_encoded_packet, # type: ignore
                 ctypes.POINTER(ctypes.c_ubyte)
             )
             #EncodedPacketPtr = ctypes.POINTER(ctypes.c_ubyte)
@@ -146,11 +148,12 @@ class OggOpusWriter():
             self._count_samples += samples
 
             # DEBUG
-            print("self._current_encoded_packet:", self._current_encoded_packet)
-            data = bytes(self._current_encoded_packet[0:len(self._current_encoded_packet)])
-            #data = bytes(encoded_packet_ptr[0:4000])
-            #print("data:", data)
-            data = bytes(encoded_packet_ptr[0:len(self._current_encoded_packet)])
+            # print("self._current_encoded_packet:", self._current_encoded_packet)
+            # tmp = self._current_encoded_packet[0:len(self._current_encoded_packet)]
+            # data = bytes(tmp)
+            # #data = bytes(encoded_packet_ptr[0:4000])
+            # #print("data:", data)
+            # data = bytes(encoded_packet_ptr[0:len(self._current_encoded_packet)])
 
             # Place data into the packet
             self._ogg_packet.packet = encoded_packet_ptr
@@ -160,9 +163,9 @@ class OggOpusWriter():
             self._ogg_packet.granulepos = self._count_samples
             self._ogg_packet.packetno = self._count_packets
 
-            # DEBUG
-            data = bytes(self._ogg_packet.packet[0:len(self._current_encoded_packet)])
-            print("self._ogg_packet:",self._ogg_packet)
+            # # DEBUG
+            # data = bytes(self._ogg_packet.packet[0:len(self._current_encoded_packet)])
+            # print("self._ogg_packet:",self._ogg_packet)
 
             # Increase the counter of the number of packets
             # in the stream
@@ -178,7 +181,7 @@ class OggOpusWriter():
             callback=handle_encoded_packet
         )
 
-    def close(self):
+    def close(self) -> None:
         # Check we haven't already closed this stream
         if self._finished:
             # We're attempting to close an already closed stream,
@@ -186,7 +189,7 @@ class OggOpusWriter():
             return
 
         # Flush the underlying buffered encoder
-        self._write_to_oggopus(b"", flush=True)
+        self._write_to_oggopus(memoryview(bytearray(b"")), flush=True)
 
         # The current packet must be the end of the stream, update
         # the packet's details
@@ -218,7 +221,7 @@ class OggOpusWriter():
     # Internal methods
     #
 
-    def _create_random_serial_no(self):
+    def _create_random_serial_no(self) -> ctypes.c_int:
         sizeof_c_int = ctypes.sizeof(ctypes.c_int)
         min_int = -2**(sizeof_c_int*8-1)
         max_int = 2**(sizeof_c_int*8-1)-1
@@ -226,7 +229,7 @@ class OggOpusWriter():
 
         return serial_no
 
-    def _create_stream_state(self):
+    def _create_stream_state(self) -> ogg.ogg_stream_state:
         # Create a random serial number
         serial_no = self._create_random_serial_no()
 
@@ -241,7 +244,7 @@ class OggOpusWriter():
 
         return ogg_stream_state
 
-    def _make_identification_header(self, pre_skip, input_sampling_rate=0):
+    def _make_identification_header(self, pre_skip: int, input_sampling_rate: int = 0) -> bytes:
         """Make the OggOpus identification header.
 
         An input_sampling rate may be set to zero to mean 'unspecified'.
@@ -270,7 +273,8 @@ class OggOpusWriter():
 
         return signature+data
 
-    def _write_identification_header_packet(self, custom_pre_skip):
+    def _write_identification_header_packet(self, custom_pre_skip: int) -> int:
+        """ Returns pre-skip. """
         if custom_pre_skip is not None:
             # Use the user-specified amount of pre-skip
             pre_skip = custom_pre_skip
@@ -302,7 +306,7 @@ class OggOpusWriter():
         )
 
         # Specify the packet containing the identification header
-        self._ogg_packet.packet = ctypes.cast(id_header, ogg.c_uchar_p)
+        self._ogg_packet.packet = ctypes.cast(id_header, ogg.c_uchar_p) # type: ignore
         self._ogg_packet.bytes = len(id_header)
         self._ogg_packet.b_o_s = 1
         self._ogg_packet.e_o_s = 0
@@ -426,5 +430,6 @@ class OggOpusWriter():
             * self._encoder._channels
             * ctypes.sizeof(opus.opus_int16)
         )
-        silence_pcm = b"\x00" * silence_length
+        silence_pcm = \
+            memoryview(bytearray(b"\x00" * silence_length))
         self._write_to_oggopus(silence_pcm)
