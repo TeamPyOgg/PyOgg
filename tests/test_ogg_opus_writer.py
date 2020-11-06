@@ -43,7 +43,9 @@ def test_one_frame_audio() -> None:
     
     # Two bytes per sample
     bytes_per_sample = 2
-    buf = b"\x00" * (bytes_per_sample * frame_size_samples)
+    buf = bytearray(
+        b"\x00" * (bytes_per_sample * frame_size_samples)
+    )
     
     writer.write(memoryview(buf))
 

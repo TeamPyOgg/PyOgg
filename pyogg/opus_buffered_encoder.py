@@ -133,7 +133,8 @@ class OpusBufferedEncoder(OpusEncoder):
             warnings.warn(
                 "Because PCM was read-only, an extra memory "+
                 "copy was required; consider storing PCM in "+
-                "writable memory."
+                "writable memory (for example, bytearray "+
+                "rather than bytes)."
             )
             pcm_ctypes = Buffer.from_buffer(pcm_bytes)
             
@@ -193,8 +194,11 @@ class OpusBufferedEncoder(OpusEncoder):
             
         # Copy the data remaining from the provided PCM into the
         # buffer.  Flush if required.
-        def copy_insufficient_data():
+        def copy_insufficient_data() -> None:
             print("in copy_insufficient_data")
+
+            # Sanity checks to satisfy mypy
+            assert self._buffer is not None
             
             # Calculate remaining data
             remaining_data = len(pcm_bytes) - pcm_index
@@ -279,19 +283,19 @@ class OpusBufferedEncoder(OpusEncoder):
                     # We have sufficient data to fill the buffer
                     # Copy data into the buffer
                     assert pcm_index == 0
-                    remaining = self._buffer_index - len(self._buffer)
-                    print("pcm_bytes:", pcm_bytes)
+                    remaining = len(self._buffer) - self._buffer_index
                     ctypes.memmove(
                         # destination
                         ctypes.byref(self._buffer, self._buffer_index),
                         # source
-                        pcm_bytes,
+                        pcm_ctypes,
                         # count
                         remaining
                     )
-                    #self._buffer[self._buffer_index:] = \
-                    #    pcm_bytes[:remaining]
+                    print("Finished call to memmove")
                     pcm_index += remaining
+                    self._buffer_index += remaining
+                    assert self._buffer_index == len(self._buffer)
                     
                     # Encode the PCM
                     encoded_packet = super().encode(
@@ -300,6 +304,17 @@ class OpusBufferedEncoder(OpusEncoder):
                         memoryview(self._buffer) # type: ignore
                     )
 
+                    # Store number of samples (per channel) of actual
+                    # data
+                    samples = (
+                        self._buffer_index
+                        // self._channels
+                        // ctypes.sizeof(opus.opus_int16)
+                    )
+
+                    # We've now processed the buffer
+                    self._buffer_index = 0
+                    
                     # Either store the encoded packet or call the
                     # callback
                     store_or_callback(encoded_packet, samples)
