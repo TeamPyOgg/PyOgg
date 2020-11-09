@@ -76,7 +76,7 @@ def test_n_frames_audio() -> None:
     
     # Two bytes per sample, two frames
     bytes_per_sample = 2
-    buf = b"\x00" * (bytes_per_sample * frame_size_samples * n)
+    buf = bytearray(b"\x00" * (bytes_per_sample * frame_size_samples * n))
     
     writer.write(memoryview(buf))
 
@@ -103,6 +103,7 @@ def test_duplicate_audio() -> None:
     writer = pyogg.OggOpusWriter(out_filename, encoder)
     writer.write(opus_file.buffer)
 
+    
 def test_already_loaded_file() -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = "../examples/left-right-demo-5s.opus"
@@ -120,6 +121,7 @@ def test_already_loaded_file() -> None:
     writer.write(opus_file.buffer)
 
     # Close the file
+    writer.close()
     f.close()
 
 

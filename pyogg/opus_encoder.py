@@ -133,10 +133,10 @@ class OpusEncoder:
                         ctypes.POINTER(ctypes.c_ubyte))
         )
         
-        print("address of first byte of 4,000 byte allocation:", hex(id(self._output_buffer[0])))
-        print("ctypes.addressof(self._output_buffer_ptr.contents):", hex(ctypes.addressof(self._output_buffer_ptr.contents)))
-        print("ctypes.addressof(self._output_buffer_ptr):", hex(ctypes.addressof(self._output_buffer_ptr)))
-        print("ctypes.addressof(self._output_buffer):", hex(ctypes.addressof(self._output_buffer)))
+        # print("address of first byte of 4,000 byte allocation:", hex(id(self._output_buffer[0])))
+        # print("ctypes.addressof(self._output_buffer_ptr.contents):", hex(ctypes.addressof(self._output_buffer_ptr.contents)))
+        # print("ctypes.addressof(self._output_buffer_ptr):", hex(ctypes.addressof(self._output_buffer_ptr)))
+        # print("ctypes.addressof(self._output_buffer):", hex(ctypes.addressof(self._output_buffer)))
         #print("Memory dump of 4,000 byte allocation:")
         #print(self._output_buffer)
         #print(self._output_buffer[:])
@@ -152,7 +152,7 @@ class OpusEncoder:
         If `pcm` is not writeable, a copy of the array will be made.
 
         """
-        print("In OpusEncoder::encode()")
+        # print("In OpusEncoder::encode()")
         # If we haven't already created an encoder, do so now
         if self._encoder is None:
             self._encoder = self._create_encoder()

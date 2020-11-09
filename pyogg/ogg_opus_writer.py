@@ -52,7 +52,7 @@ class OggOpusWriter():
         # Store the custom pre skip
         self._custom_pre_skip = custom_pre_skip
 
-        self._i_opened_the_file = None
+        self._i_opened_the_file = False
         if isinstance(f, str):
             self._file = builtins.open(f, 'wb')
             self._i_opened_the_file = True
@@ -207,6 +207,7 @@ class OggOpusWriter():
 
         # Close the file if we opened it
         if self._i_opened_the_file:
+            #print("OggOpusWriter: Closing the file")
             self._file.close()
             self._i_opened_the_file = False
 
