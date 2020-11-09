@@ -143,7 +143,7 @@ def test_custom_pre_skip() -> None:
 
     # Create a buffer of silence 
     bytes_per_sample = 2
-    buf = (
+    buf = bytearray(
         b"\x00"
         * bytes_per_sample
         * channels
@@ -163,8 +163,7 @@ def test_custom_pre_skip() -> None:
 # Error handling tests
 # ====================
 
-# Subclassing from 'str' is purely to eliminate mypy type errors
-class MockFile(str): 
+class MockFile: 
     def write(self, data):
         pass
 
@@ -176,10 +175,13 @@ def test_error_after_close() -> None:
     encoder.set_sampling_frequency(48000)
     encoder.set_channels(2)
     encoder.set_frame_size(20) # milliseconds
-    writer = pyogg.OggOpusWriter(mock_file, encoder)
+
+    # MyPy complains at the MockFile class, but we can ignore the
+    # error.
+    writer = pyogg.OggOpusWriter(mock_file, encoder) # type: ignore
     writer.close()
     with pytest.raises(pyogg.PyOggError):
-        writer.write(memoryview(b""))
+        writer.write(memoryview(bytearray(b"")))
 
         
 def test_close_twice() -> None:
@@ -189,6 +191,9 @@ def test_close_twice() -> None:
     encoder.set_sampling_frequency(48000)
     encoder.set_channels(2)
     encoder.set_frame_size(20) # milliseconds
-    writer = pyogg.OggOpusWriter(mock_file, encoder)
+
+    # MyPy complains at the MockFile class, but we can ignore the
+    # error.
+    writer = pyogg.OggOpusWriter(mock_file, encoder) # type: ignore
     writer.close()
     writer.close()

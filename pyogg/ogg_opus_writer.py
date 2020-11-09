@@ -52,14 +52,6 @@ class OggOpusWriter():
         # Store the custom pre skip
         self._custom_pre_skip = custom_pre_skip
 
-        self._i_opened_the_file = False
-        if isinstance(f, str):
-            self._file = builtins.open(f, 'wb')
-            self._i_opened_the_file = True
-        else:
-            # Assume it's already opened file
-            self._file = f
-
         # Create a new stream state with a random serial number
         self._stream_state = self._create_stream_state()
 
@@ -87,6 +79,16 @@ class OggOpusWriter():
         # Reference to the current encoded packet (written only
         # when we know if it the last)
         self._current_encoded_packet: Optional[bytes] = None
+
+        # Open file if required.  Given this may raise an exception,
+        # it should be the last step of initialisation.
+        self._i_opened_the_file = False
+        if isinstance(f, str):
+            self._file = builtins.open(f, 'wb')
+            self._i_opened_the_file = True
+        else:
+            # Assume it's already opened file
+            self._file = f
 
     def __del__(self) -> None:
         if not self._finished:
