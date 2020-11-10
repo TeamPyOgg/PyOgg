@@ -375,12 +375,15 @@ class OggOpusWriter():
 
     def _write_page(self):
         """ Write page to file """
-        self._file.write(
-            bytes(self._ogg_page.header[0:self._ogg_page.header_len])
-        )
-        self._file.write(
-            bytes(self._ogg_page.body[0:self._ogg_page.body_len])
-        )
+        # Cast pointer to ctypes array, which can then be passed to
+        # write without issues.
+        HeaderBufferPtr = ctypes.POINTER(ctypes.c_ubyte * self._ogg_page.header_len)
+        header = HeaderBufferPtr(self._ogg_page.header.contents)[0]
+        self._file.write(header)
+
+        BodyBufferPtr = ctypes.POINTER(ctypes.c_ubyte * self._ogg_page.body_len)
+        body = BodyBufferPtr(self._ogg_page.body.contents)[0]
+        self._file.write(body)
 
     def _flush(self):
         """ Flush all pages to the file. """
