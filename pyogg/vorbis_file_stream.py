@@ -5,6 +5,7 @@ from .pyogg_error import PyOggError
 
 class VorbisFileStream:
     def __init__(self, path, buffer_size=8192):
+        self.exists = False
         self._buffer_size = buffer_size
         
         self.vf = vorbis.OggVorbis_File()
@@ -28,7 +29,7 @@ class VorbisFileStream:
         self.bitstream = ctypes.c_int()
         self.bitstream_pointer = ctypes.pointer(self.bitstream)
 
-        self.exists = True
+        self.exists = True # TODO: is this the best place for this statement?
 
         #: Bytes per sample
         self.bytes_per_sample = 2 # TODO: Where is this defined?

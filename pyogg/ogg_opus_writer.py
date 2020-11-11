@@ -125,7 +125,9 @@ class OggOpusWriter():
     def _write_to_oggopus(self, pcm: memoryview, flush: bool = False) -> None:
         assert self._encoder is not None
         
-        def handle_encoded_packet(encoded_packet: memoryview, samples: int) -> None:
+        def handle_encoded_packet(encoded_packet: memoryview,
+                                  samples: int,
+                                  end_of_stream: bool) -> None:
             # If the previous packet is valid, write it into the stream
             if self._packet_valid:
                 self._write_packet()
@@ -177,7 +179,7 @@ class OggOpusWriter():
             self._packet_valid = True
 
         # Encode the PCM data into an Opus packet
-        self._encoder.encode_with_samples(
+        self._encoder.buffered_encode(
             pcm,
             flush=flush,
             callback=handle_encoded_packet

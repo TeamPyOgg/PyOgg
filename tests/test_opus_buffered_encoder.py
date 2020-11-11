@@ -1,7 +1,9 @@
-import pytest
-import pyogg
+import ctypes
 import os
 from typing import Callable
+
+import pytest
+import pyogg
 
 os.chdir(os.path.dirname(__file__))
 
@@ -15,7 +17,8 @@ def init_encoder(samples_per_second:int = 48000,
                  set_application: bool = True,
                  set_channels: bool = True,
                  set_frame_size: bool = True,
-                 callback: Callable[[bytes, int], None] = None
+                 callback: Callable[[bytes, int], None] = None,
+                 flush: bool = False
                  ) -> pyogg.OpusBufferedEncoder:
     encoder = pyogg.OpusBufferedEncoder()
     if set_application:
@@ -37,12 +40,11 @@ def init_encoder(samples_per_second:int = 48000,
         * duration_ms
     )
 
-    if callback is None:
-        # Encode the sample
-        _ = encoder.encode_with_buffering(memoryview(buf))
-    else:
-        # Encode with callback
-        encoder.encode_with_samples(memoryview(buf), callback=callback)
+    encoder.buffered_encode(
+        memoryview(buf),
+        flush=flush,
+        callback=callback
+    )
                                     
     return encoder
     
@@ -75,7 +77,8 @@ def test_callback() -> None:
     decoder.set_channels(channels)
     
     # Specify the callback that will receive the encoded packets
-    def callback(encoded_packet, samples):
+    index = 0
+    def callback(encoded_packet, samples, end_of_stream):
         assert len(encoded_packet) > 0
         assert samples == expected_samples
 
@@ -83,14 +86,77 @@ def test_callback() -> None:
         pcm = decoder.decode(encoded_packet)
         assert len(pcm) == expected_pcm_length
 
+        # Ignore the end of stream; it's tested below
+
     # Create the encoder
     encoder = init_encoder(
         channels = channels,
         frame_size = frame_size_ms,
+        duration_ms = 60,
         callback = callback
     )
     
 
+def test_eos_with_no_data() -> None:
+    def callback(encoded_packet: ctypes.Array,
+                 samples: int,
+                 end_of_stream: bool) -> None:
+        assert samples == 0
+        assert end_of_stream is True
+        
+    encoder = init_encoder(
+        duration_ms = 0,
+        callback = callback
+    )
+
+def test_eos_with_under_one_frame() -> None:
+    def callback(encoded_packet: ctypes.Array,
+                 samples: int,
+                 end_of_stream: bool) -> None:
+        assert end_of_stream is True
+        
+    encoder = init_encoder(
+        frame_size = 20,
+        duration_ms = 19,
+        callback = callback
+    )
+    
+def test_eos_with_one_frame() -> None:
+    def callback(encoded_packet: ctypes.Array,
+                 samples: int,
+                 end_of_stream: bool) -> None:
+        assert end_of_stream is True
+        
+    encoder = init_encoder(
+        frame_size = 10,
+        duration_ms = 10,
+        callback = callback
+    )
+    
+def test_eos_with_over_one_frame() -> None:
+    samples_per_ms = 48000 // 1000
+    frame_1_ms = 5
+    frame_2_ms = 1
+    
+    index = 0
+    expected_eos = [False, True]
+    expected_samples = [samples_per_ms*frame_1_ms,
+                        samples_per_ms*frame_2_ms]
+    def callback(encoded_packet: ctypes.Array,
+                 samples: int,
+                 end_of_stream: bool) -> None:
+        nonlocal index
+        assert end_of_stream is expected_eos[index]
+        assert samples == expected_samples[index]
+        index += 1
+        
+    encoder = init_encoder(
+        frame_size = 5,
+        duration_ms = frame_1_ms + frame_2_ms,
+        callback = callback
+    )
+    
+    
 def test_invalid_frame_size() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(frame_size=15)

@@ -52,40 +52,11 @@ class OpusBufferedEncoder(OpusEncoder):
         self._calc_frame_size()
 
 
-    def encode_with_buffering(self, pcm: memoryview, flush: bool = False) -> List[memoryview]:
-        """Produces Opus-encoded packets from buffered PCM.
-
-        First, pcm_bytes are appended to the end of the internal buffer.
-
-        Then, while there are sufficient bytes in the buffer,
-        frames will be encoded.
-
-        This method returns a list, where each item in the list is
-        an Opus-encoded frame stored as a bytes-object.
-
-        If insufficient samples are passed in for the specified
-        frame size, then an empty list will be returned.
-
-        If flush is set to True, the buffer will be entirely
-        emptied and, in the case that there remains PCM for only a
-        partial final frame, the PCM will be completed with
-        silence to make a complete final frame.
-
-        """
-        # Get the encoded packets
-        results = self.encode_with_samples(pcm, flush=flush)
-
-        # Strip the sample lengths
-        stripped_results = [encoded_packet for
-                            encoded_packet, _ in results]
-
-        return stripped_results
-
-    def encode_with_samples(self,
-                            pcm_bytes: memoryview,
-                            flush: bool = False,
-                            callback: Callable[[memoryview,int],None] = None
-                            ) -> List[Tuple[memoryview, int]]:
+    def buffered_encode(self,
+                        pcm_bytes: memoryview,
+                        flush: bool = False,
+                        callback: Callable[[memoryview,int],None] = None
+                        ) -> List[Tuple[memoryview, int]]:
         """Gets encoded packets and their number of samples.
 
         This method returns a list, where each item in the list is
@@ -141,14 +112,23 @@ class OpusBufferedEncoder(OpusEncoder):
         # Either store the encoded packet to return at the end of the
         # method or immediately call the callback with the encoded
         # packet.
-        def store_or_callback(encoded_packet: memoryview, samples: int) -> None:
-            #print(f"store or call back with {samples} samples")
+        def store_or_callback(encoded_packet: memoryview,
+                              samples: int,
+                              end_of_stream: bool = False) -> None:
             if callback is None:
                 # Store the result
-                results.append((encoded_packet, samples))
+                results.append((
+                    encoded_packet,
+                    samples,
+                    end_of_stream
+                ))
             else:
                 # Call the callback
-                callback(encoded_packet, samples)
+                callback(
+                    encoded_packet,
+                    samples,
+                    end_of_stream
+                )
 
         # Fill the remainder of the buffer with silence and encode it.
         # The associated number of samples are only that of actual
@@ -189,7 +169,7 @@ class OpusBufferedEncoder(OpusEncoder):
 
             # Either store the encoded packet or call the
             # callback
-            store_or_callback(encoded_packet, samples)
+            store_or_callback(encoded_packet, samples, True)
 
             
         # Copy the data remaining from the provided PCM into the
@@ -236,11 +216,10 @@ class OpusBufferedEncoder(OpusEncoder):
                 # bytes.  Once there is insufficient data remaining
                 # for a complete frame, that data should be copied
                 # into the buffer and we have finished.
-                if pcm_len - pcm_index >= self._frame_size_bytes:
-                    #print("We don't need to copy data; we've got enough for a frame")
+                if pcm_len - pcm_index > self._frame_size_bytes:
                     # We have enough data remaining in the provided
-                    # PCM to encode an entire frame without copying
-                    # any data.
+                    # PCM to encode more than an entire frame without
+                    # copying any data.
                     frame_data = pcm_bytes[
                         pcm_index:pcm_index+self._frame_size_bytes
                     ]
@@ -264,9 +243,9 @@ class OpusBufferedEncoder(OpusEncoder):
                     store_or_callback(encoded_packet, samples)
 
                 else:
-                    #print("We need to copy data to the buffer as we don't have enough for a frame")
-                    # We do not have enough data to fill a frame.
-                    # Copy the data into the buffer.
+                    # We do not have enough data to fill a frame while
+                    # still having data left over.  Copy the data into
+                    # the buffer.
                     copy_insufficient_data()
                     return results
 
@@ -279,9 +258,9 @@ class OpusBufferedEncoder(OpusEncoder):
                 # encode the filled buffer and continue.  If we can't
                 # fill it then we've finished.
                 data_required = len(self._buffer) - self._buffer_index
-                if pcm_len >= data_required:
-                    # We have sufficient data to fill the buffer
-                    # Copy data into the buffer
+                if pcm_len > data_required:
+                    # We have sufficient data to fill the buffer and
+                    # have data left over.  Copy data into the buffer.
                     assert pcm_index == 0
                     remaining = len(self._buffer) - self._buffer_index
                     ctypes.memmove(
@@ -320,7 +299,8 @@ class OpusBufferedEncoder(OpusEncoder):
                     store_or_callback(encoded_packet, samples)
                 else:
                     # We have insufficient data to fill the buffer
-                    # Copy the data into the buffer.
+                    # while still having data left over.  Copy the
+                    # data into the buffer.
                     copy_insufficient_data()
                     return results
 
