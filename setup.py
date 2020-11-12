@@ -80,9 +80,11 @@ elif system == 'Windows':
     zip_safe = False
 else:
     print("Unknown system; not packaging any shared libraries")
-    package_data = {}
+    package_data = {'pyogg': []}
     zip_safe = True
 
+# Include the py.typed file in package_data
+package_data["pyogg"].append("py.typed")
 
 # Override the 'bdist_wheel' command to create OS-dependent byt
 # Python-independent wheels

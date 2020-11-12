@@ -1,20 +1,19 @@
 import ctypes
+from typing import Optional, Union, ByteString
 
 from . import opus
 from .pyogg_error import PyOggError
 
 class OpusEncoder:
     """Encodes PCM data into Opus frames."""
-    def __init__(self):
-        self._encoder = None
-        self._channels = None
-        self._samples_per_second = None
-        self._application = None
-        self._encoder = None
-        self._pcm_buffer = None
-        self._max_bytes_per_frame = None
-        self._output_buffer = None
-        self._output_buffer_ptr = None
+    def __init__(self) -> None:
+        self._encoder: Optional[ctypes.pointer] = None
+        self._channels: Optional[int] = None
+        self._samples_per_second: Optional[int] = None
+        self._application: Optional[int] = None
+        self._max_bytes_per_frame: Optional[opus.opus_int32] = None
+        self._output_buffer: Optional[ctypes.Array] = None
+        self._output_buffer_ptr: Optional[ctypes.pointer] = None
 
         # An output buffer of 4,000 bytes is recommended in
         # https://opus-codec.org/docs/opus_api-1.3.1/group__opus__encoder.html
@@ -24,7 +23,7 @@ class OpusEncoder:
     # User visible methods
     #
 
-    def set_channels(self, n):
+    def set_channels(self, n: int) -> None:
         """Set the number of channels.
 
         n must be either 1 or 2.
@@ -44,7 +43,7 @@ class OpusEncoder:
                 "set_channels() was called after encode()?"
             )
 
-    def set_sampling_frequency(self, samples_per_second):
+    def set_sampling_frequency(self, samples_per_second: int) -> None:
         """Set the number of samples (per channel) per second.
 
         This must be one of 8000, 12000, 16000, 24000, or 48000.
@@ -73,7 +72,7 @@ class OpusEncoder:
                 "set_sampling_frequency() was called after encode()?"
             )
 
-    def set_application(self, application):
+    def set_application(self, application: str) -> None:
         """Set the encoding mode.
 
         This must be one of 'voip', 'audio', or 'restricted_lowdelay'.
@@ -116,7 +115,7 @@ class OpusEncoder:
                 "wasn't one of the accepted values."
             )
 
-    def set_max_bytes_per_frame(self, max_bytes):
+    def set_max_bytes_per_frame(self, max_bytes: int) -> None:
         """Set the maximum number of bytes in an encoded frame.
 
         Size of the output payload. This may be used to impose an
@@ -133,25 +132,42 @@ class OpusEncoder:
             ctypes.cast(ctypes.pointer(self._output_buffer),
                         ctypes.POINTER(ctypes.c_ubyte))
         )
-
-    def encode(self, pcm_bytes):
+        
+        # print("address of first byte of 4,000 byte allocation:", hex(id(self._output_buffer[0])))
+        # print("ctypes.addressof(self._output_buffer_ptr.contents):", hex(ctypes.addressof(self._output_buffer_ptr.contents)))
+        # print("ctypes.addressof(self._output_buffer_ptr):", hex(ctypes.addressof(self._output_buffer_ptr)))
+        # print("ctypes.addressof(self._output_buffer):", hex(ctypes.addressof(self._output_buffer)))
+        #print("Memory dump of 4,000 byte allocation:")
+        #print(self._output_buffer)
+        #print(self._output_buffer[:])
+        
+        
+    def encode(self, pcm: Union[bytes, bytearray, memoryview]) -> memoryview:
         """Encodes PCM data into an Opus frame.
 
-        pcm_bytes must be formatted as bytes, with each sample
-        taking two bytes (signed 16-bit integers; interleaved
-        left, then right channels if in stereo).
+        `pcm` must be formatted as bytes-like, with each sample taking
+        two bytes (signed 16-bit integers; interleaved left, then
+        right channels if in stereo).
+
+        If `pcm` is not writeable, a copy of the array will be made.
 
         """
+        # print("In OpusEncoder::encode()")
         # If we haven't already created an encoder, do so now
         if self._encoder is None:
             self._encoder = self._create_encoder()
+            
+        # Sanity checks also satisfy mypy type checking
+        assert self._channels is not None
+        assert self._samples_per_second is not None
+        assert self._output_buffer is not None
 
         # Calculate the effective frame duration of the given PCM
         # data.  Calculate it in units of 0.1ms in order to avoid
         # floating point comparisons.
         bytes_per_sample = 2
         frame_size = (
-            len(pcm_bytes) # bytes
+            len(pcm) # bytes
             // bytes_per_sample
             // self._channels
         )
@@ -168,10 +184,26 @@ class OpusEncoder:
                 "was not one of the acceptable values."
             )
 
-        # Create a pointer to the PCM data
-        pcm_ptr = ctypes.cast(pcm_bytes,
-                              ctypes.POINTER(opus.opus_int16))
+        # Create a ctypes object sharing the memory of the PCM data
+        PcmCtypes = ctypes.c_ubyte * len(pcm)
+        try:
+            # Attempt to share the PCM memory
+            
+            # Unfortunately, as at 2020-09-27, the type hinting for
+            # read-only and writeable buffer protocols was a
+            # work-in-progress.  The following only works for writable
+            # cases, but the method's parameters include a read-only
+            # possibility (bytes), thus we ignore mypy's error.
+            pcm_ctypes = PcmCtypes.from_buffer(pcm) # type: ignore[arg-type]
+        except TypeError:
+            # The data must be copied if it's not writeable
+            pcm_ctypes = PcmCtypes.from_buffer_copy(pcm)
 
+        # Create a pointer to the PCM data
+        pcm_ptr = ctypes.cast(
+            pcm_ctypes,
+            ctypes.POINTER(opus.opus_int16)
+        )
 
         # Create an int giving the frame size per channel
         frame_size_int = ctypes.c_int(frame_size)
@@ -192,15 +224,89 @@ class OpusEncoder:
                 opus.opus_strerror(result).decode("utf")
             )
 
-        # Extract just the valid data as bytes
-        return bytes(self._output_buffer[:result])
+        # Get memoryview of buffer so that the slice operation doesn't
+        # copy the data.
+        #
+        # Unfortunately, as at 2020-09-27, the type hints for
+        # memoryview do not include ctype arrays.  This is because
+        # there is no currently accepted manner to label a class as
+        # supporting the buffer protocol.  However, it's clearly a
+        # work in progress.  For more information, see:
+        # * https://bugs.python.org/issue27501
+        # * https://github.com/python/typing/issues/593
+        # * https://github.com/python/typeshed/pull/4232
+        mv = memoryview(self._output_buffer) # type: ignore
+        
+        # Cast the memoryview to char
+        mv = mv.cast('c')
 
+        # Slice just the valid data from the memoryview
+        valid_data_as_bytes = mv[:result]
+        
+        # DEBUG
+        # Convert memoryview back to ctypes instance
+        Buffer = ctypes.c_ubyte * len(valid_data_as_bytes)
+        buf = Buffer.from_buffer( valid_data_as_bytes )
+        
+        # Convert PCM back to pointer and dump 4,000-byte buffer
+        ptr = ctypes.cast(
+            buf,
+            ctypes.POINTER(ctypes.c_ubyte)
+        )
+        #print("ptr[0:4000]:")
+        #print(ptr[0:4000])
+        
+        #print("self._output_buffer[0:4000]:")
+        #print(self._output_buffer[0:4000])
+        
+        return valid_data_as_bytes
 
+    
+    def get_algorithmic_delay(self):
+        """Gets the total samples of delay added by the entire codec.
+
+        This can be queried by the encoder and then the provided
+        number of samples can be skipped on from the start of the
+        decoder's output to provide time aligned input and
+        output. From the perspective of a decoding application the
+        real data begins this many samples late.
+
+        The decoder contribution to this delay is identical for all
+        decoders, but the encoder portion of the delay may vary from
+        implementation to implementation, version to version, or even
+        depend on the encoder's initial configuration. Applications
+        needing delay compensation should call this method rather than
+        hard-coding a value.
+
+        """
+        # If we haven't already created an encoder, do so now
+        if self._encoder is None:
+            self._encoder = self._create_encoder()
+        
+        # Obtain the algorithmic delay of the Opus encoder.  See
+        # https://tools.ietf.org/html/rfc7845#page-27 
+        delay = opus.opus_int32()
+
+        result = opus.opus_encoder_ctl(
+            self._encoder,
+            opus.OPUS_GET_LOOKAHEAD_REQUEST,
+            ctypes.pointer(delay)
+        )
+        if result != opus.OPUS_OK:
+            raise PyOggError(
+                "Failed to obtain the algorithmic delay of "+
+                "the Opus encoder: "+
+                opus.opus_strerror(result).decode("utf")
+            )
+        delay_samples = delay.value
+        return delay_samples
+
+    
     #
     # Internal methods
     #
 
-    def _create_encoder(self):
+    def _create_encoder(self) -> ctypes.pointer:
         # To create an encoder, we must first allocate resources for it.
         # We want Python to be responsible for the memory deallocation,
         # and thus Python must be responsible for the initial memory

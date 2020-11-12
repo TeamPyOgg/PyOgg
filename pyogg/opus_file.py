@@ -16,8 +16,8 @@ class OpusFile:
         # Check for errors 
         if error.value != 0:
             raise PyOggError(
-                "File couldn't be opened or doesn't exist. "+
-                "Error code: {}".format(error.value)
+                ("File '{}' couldn't be opened or doesn't exist. "+
+                 "Error code: {}").format(path, error.value)
             )
 
         # Extract the number of channels in the newly opened file
@@ -94,9 +94,10 @@ class OpusFile:
         #: Number of samples per second (per channel).  Always 48,000.
         self.frequency = 48000
 
-        # Store the buffer as Python bytes
+        # Store the buffer as bytes, using memory view to ensure that 
+        # we're not copying the underlying data.
         #: Raw PCM data from audio file.
-        self.buffer = bytes(buf)
+        self.buffer = memoryview(buf).cast('B')
 
     def as_array(self):
         """Returns the buffer as a NumPy array.
@@ -111,7 +112,7 @@ class OpusFile:
 
         """
 
-        import numpy
+        import numpy # type: ignore
 
         # Convert the bytes buffer to a NumPy array
         array = numpy.frombuffer(

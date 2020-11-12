@@ -122,8 +122,16 @@ if libvorbisenc is None:
 else:
     PYOGG_VORBIS_ENC_AVAIL = True
 
+# FIXME: What's the story with the lack of checking for PYOGG_VORBIS_ENC_AVAIL?
+# We just seem to assume that it's available.
 
-if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
+if PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
+    # Sanity check also satisfies mypy type checking
+    assert libogg is not None
+    assert libvorbis is not None
+    assert libvorbisfile is not None
+
+
     # codecs
     class vorbis_info(ctypes.Structure):
         """
@@ -256,10 +264,10 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     def vorbis_comment_add(vc, comment):
         libvorbis.vorbis_comment_add(vc, comment)
 
-    libvorbis.vorbis_info_clear.restype = None
-    libvorbis.vorbis_info_clear.argtypes = [vc_p, c_char_p, c_char_p]
-    def vorbis_info_init(vc, tag, comment):
-        libvorbis.vorbis_info_init(vc, tag, comment)
+    libvorbis.vorbis_comment_add_tag.restype = None
+    libvorbis.vorbis_comment_add_tag.argtypes = [vc_p, c_char_p, c_char_p]
+    def vorbis_comment_add_tag(vc, tag, comment):
+        libvorbis.vorbis_comment_add_tag(vc, tag, comment)
 
     libvorbis.vorbis_comment_query.restype = c_char_p
     libvorbis.vorbis_comment_query.argtypes = [vc_p, c_char_p, c_int]
@@ -301,7 +309,7 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
 
         
     libvorbis.vorbis_version_string.restype = c_char_p
-    libvorbis.vorbis_version_string.argtypes = None
+    libvorbis.vorbis_version_string.argtypes = []
     def vorbis_version_string():
         return libvorbis.vorbis_version_string()
 
@@ -365,10 +373,10 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
     def vorbis_synthesis_idheader(op):
         return libvorbis.vorbis_synthesis_idheader(op)
         
-    libvorbis.vorbis_bitrate_flushpacket.restype = c_int
-    libvorbis.vorbis_bitrate_flushpacket.argtypes = [vi_p, vc_p, op_p]
-    def vorbis_bitrate_flushpacket(vi, vc, op):
-        return libvorbis.vorbis_bitrate_flushpacket(vi, vc, op)
+    libvorbis.vorbis_synthesis_headerin.restype = c_int
+    libvorbis.vorbis_synthesis_headerin.argtypes = [vi_p, vc_p, op_p]
+    def vorbis_synthesis_headerin(vi, vc, op):
+        return libvorbis.vorbis_synthesis_headerin(vi, vc, op)
 
 
 
@@ -760,6 +768,10 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
 
     try:
         # vorbisenc
+        
+        # Sanity check also satisfies mypy type checking
+        assert libvorbisenc is not None
+        
         libvorbisenc.vorbis_encode_init.restype = c_int
         libvorbisenc.vorbis_encode_init.argtypes = [vi_p, c_long, c_long, c_long, c_long, c_long]
 
@@ -793,8 +805,8 @@ if PYOGG_OGG_AVAIL and  PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
         libvorbisenc.vorbis_encode_setup_init.restype = c_int
         libvorbisenc.vorbis_encode_setup_init.argtypes = [vi_p, c_int, c_void_p]
 
-        def vorbis_encode_setup_init(vi, number, arg):
-            return libvorbisenc.vorbis_encode_setup_init(vi, number, arg)
+        def vorbis_encode_ctl(vi, number, arg):
+            return libvorbisenc.vorbis_encode_ctl(vi, number, arg)
 
         class ovectl_ratemanage_arg(ctypes.Structure):
             _fields_ = [("management_active", c_int),

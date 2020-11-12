@@ -5,12 +5,12 @@ import os
 os.chdir(os.path.dirname(__file__))
 
 # Function to create an encoder and encode a sample of silence
-def init_encoder(samples_per_second=48000,
-                 application="audio",
-                 channels=1,
-                 set_sampling_frequency=True,
-                 set_application=True,
-                 set_channels=True):
+def init_encoder(samples_per_second: int = 48000,
+                 application: str = "audio",
+                 channels: int = 1,
+                 set_sampling_frequency: bool = True,
+                 set_application: bool = True,
+                 set_channels: bool = True) -> pyogg.OpusEncoder:
     encoder = pyogg.OpusEncoder()
     if set_application:
         encoder.set_application(application)
@@ -38,68 +38,68 @@ def init_encoder(samples_per_second=48000,
 # Most of the useful functionality is already well tested thanks to
 # OggOpusWriter.
 
-def test_application_voip():
+def test_application_voip() -> None:
     encoder = init_encoder(application="voip")
     
-def test_application_restricted_lowdelay():
+def test_application_restricted_lowdelay() -> None:
     encoder = init_encoder(application="restricted_lowdelay")
 
 # We now focus on testing the error conditions.
 
-def test_invalid_number_of_channels():
+def test_invalid_number_of_channels() -> None:
     encoder = pyogg.OpusEncoder()
     with pytest.raises(pyogg.PyOggError):
         encoder.set_channels(3)
 
     
-def test_cannot_change_channels():
+def test_cannot_change_channels() -> None:
     encoder = init_encoder()
     # Test that we cannot change the number of channels
     with pytest.raises(pyogg.PyOggError):
         encoder.set_channels(2)
 
         
-def test_invalid_sampling_frequency():
+def test_invalid_sampling_frequency() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(44100)
     
         
-def test_cannot_change_sampling_frequency():
+def test_cannot_change_sampling_frequency() -> None:
     encoder = init_encoder()
     # Test that we cannot change the sampling frequency
     with pytest.raises(pyogg.PyOggError):
         encoder.set_sampling_frequency(24000)
 
         
-def test_invalid_application():
+def test_invalid_application() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(application="invalid")
 
 
-def test_cannot_change_application():
+def test_cannot_change_application() -> None:
     encoder = init_encoder()
     # Test that we cannot change the application
     with pytest.raises(pyogg.PyOggError):
         encoder.set_application("audio")
 
 
-def test_invalid_frame_size():
+def test_invalid_frame_size() -> None:
     encoder = init_encoder()
     # Test that we cannot change the application
     with pytest.raises(pyogg.PyOggError):
         encoder.encode(b"\x00")
 
         
-def test_application_not_set():
+def test_application_not_set() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(set_application=False)
     
 
-def test_sampling_frequency_not_set():
+def test_sampling_frequency_not_set() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(set_sampling_frequency=False)
 
 
-def test_channels_not_set():
+def test_channels_not_set() -> None:
     with pytest.raises(pyogg.PyOggError):
         encoder = init_encoder(set_channels=False)

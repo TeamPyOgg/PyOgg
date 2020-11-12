@@ -68,8 +68,7 @@ class VorbisFile:
         shares the memory with the buffer.
 
         """
-
-        import numpy
+        import numpy # type: ignore
 
         # Convert the bytes buffer to a NumPy array
         array = numpy.frombuffer(
