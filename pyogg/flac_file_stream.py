@@ -117,7 +117,7 @@ class FlacFileStream:
         to get_buffer() or get_buffer_as_array().
 
         """
-        import numpy
+        import numpy # type: ignore
 
         # Read the next samples from the stream
         buf = self.get_buffer()

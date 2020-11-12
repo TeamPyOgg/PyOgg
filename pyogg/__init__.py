@@ -8,7 +8,7 @@ from .flac import PYOGG_FLAC_AVAIL
 
 
 #: PyOgg version number.  Versions should comply with PEP440.
-__version__ = '0.6.14a7'
+__version__ = '0.7'
 
 
 if (PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL):
