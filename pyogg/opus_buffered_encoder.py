@@ -55,8 +55,8 @@ class OpusBufferedEncoder(OpusEncoder):
     def buffered_encode(self,
                         pcm_bytes: memoryview,
                         flush: bool = False,
-                        callback: Callable[[memoryview,int],None] = None
-                        ) -> List[Tuple[memoryview, int]]:
+                        callback: Callable[[memoryview,int,bool],None] = None
+                        ) -> List[Tuple[memoryview, int, bool]]:
         """Gets encoded packets and their number of samples.
 
         This method returns a list, where each item in the list is

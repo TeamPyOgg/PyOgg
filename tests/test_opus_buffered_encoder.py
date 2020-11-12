@@ -17,7 +17,7 @@ def init_encoder(samples_per_second:int = 48000,
                  set_application: bool = True,
                  set_channels: bool = True,
                  set_frame_size: bool = True,
-                 callback: Callable[[bytes, int], None] = None,
+                 callback: Callable[[memoryview, int, bool], None] = None,
                  flush: bool = False
                  ) -> pyogg.OpusBufferedEncoder:
     encoder = pyogg.OpusBufferedEncoder()
@@ -78,7 +78,9 @@ def test_callback() -> None:
     
     # Specify the callback that will receive the encoded packets
     index = 0
-    def callback(encoded_packet, samples, end_of_stream):
+    def callback(encoded_packet: memoryview,
+                 samples: int,
+                 end_of_stream: bool) -> None:
         assert len(encoded_packet) > 0
         assert samples == expected_samples
 
@@ -98,7 +100,7 @@ def test_callback() -> None:
     
 
 def test_eos_with_no_data() -> None:
-    def callback(encoded_packet: ctypes.Array,
+    def callback(encoded_packet: memoryview,
                  samples: int,
                  end_of_stream: bool) -> None:
         assert samples == 0
@@ -110,7 +112,7 @@ def test_eos_with_no_data() -> None:
     )
 
 def test_eos_with_under_one_frame() -> None:
-    def callback(encoded_packet: ctypes.Array,
+    def callback(encoded_packet: memoryview,
                  samples: int,
                  end_of_stream: bool) -> None:
         assert end_of_stream is True
@@ -122,7 +124,7 @@ def test_eos_with_under_one_frame() -> None:
     )
     
 def test_eos_with_one_frame() -> None:
-    def callback(encoded_packet: ctypes.Array,
+    def callback(encoded_packet: memoryview,
                  samples: int,
                  end_of_stream: bool) -> None:
         assert end_of_stream is True
@@ -142,7 +144,7 @@ def test_eos_with_over_one_frame() -> None:
     expected_eos = [False, True]
     expected_samples = [samples_per_ms*frame_1_ms,
                         samples_per_ms*frame_2_ms]
-    def callback(encoded_packet: ctypes.Array,
+    def callback(encoded_packet: memoryview,
                  samples: int,
                  end_of_stream: bool) -> None:
         nonlocal index

@@ -128,55 +128,34 @@ class OggOpusWriter():
         def handle_encoded_packet(encoded_packet: memoryview,
                                   samples: int,
                                   end_of_stream: bool) -> None:
-            # If the previous packet is valid, write it into the stream
-            if self._packet_valid:
-                self._write_packet()
-
-            # Copy the data of the current encoded packet
-            self._current_encoded_packet = bytes(encoded_packet)
-
-            # # DEBUG
-            # data = bytes(self._current_encoded_packet[0:len(self._current_encoded_packet)])
+            # Cast memoryview to ctypes Array
+            Buffer = ctypes.c_ubyte * len(encoded_packet)
+            encoded_packet_ctypes = Buffer.from_buffer(encoded_packet)
 
             # Obtain a pointer to the encoded packet
-            # As at 2020-11-05, mypy was not aware that ctypes could
-            # obtain a pointer from a bytes object.
             encoded_packet_ptr = ctypes.cast( 
-                self._current_encoded_packet, # type: ignore
+                encoded_packet_ctypes,
                 ctypes.POINTER(ctypes.c_ubyte)
             )
-            #EncodedPacketPtr = ctypes.POINTER(ctypes.c_ubyte)
-            #encoded_packet_ptr = EncodedPacketPtr(encoded_packet_as_ubyte)
 
             # Increase the count of the number of samples written
             self._count_samples += samples
 
-            # DEBUG
-            # print("self._current_encoded_packet:", self._current_encoded_packet)
-            # tmp = self._current_encoded_packet[0:len(self._current_encoded_packet)]
-            # data = bytes(tmp)
-            # #data = bytes(encoded_packet_ptr[0:4000])
-            # #print("data:", data)
-            # data = bytes(encoded_packet_ptr[0:len(self._current_encoded_packet)])
-
             # Place data into the packet
             self._ogg_packet.packet = encoded_packet_ptr
-            self._ogg_packet.bytes = len(self._current_encoded_packet)
+            self._ogg_packet.bytes = len(encoded_packet)
             self._ogg_packet.b_o_s = 0
-            self._ogg_packet.e_o_s = 0
+            self._ogg_packet.e_o_s = end_of_stream
             self._ogg_packet.granulepos = self._count_samples
             self._ogg_packet.packetno = self._count_packets
-
-            # # DEBUG
-            # data = bytes(self._ogg_packet.packet[0:len(self._current_encoded_packet)])
-            # print("self._ogg_packet:",self._ogg_packet)
 
             # Increase the counter of the number of packets
             # in the stream
             self._count_packets += 1
 
-            # Mark the packet as valid
-            self._packet_valid = True
+            # Write the packet into the stream
+            self._write_packet()
+
 
         # Encode the PCM data into an Opus packet
         self._encoder.buffered_encode(
