@@ -190,7 +190,6 @@ class OggOpusWriter():
 
         # Close the file if we opened it
         if self._i_opened_the_file:
-            #print("OggOpusWriter: Closing the file")
             self._file.close()
             self._i_opened_the_file = False
 

@@ -77,8 +77,6 @@ class OpusBufferedEncoder(OpusEncoder):
         the data may be overwritten once the callback terminates.
 
         """
-        #print("\nlen(pcm_bytes):", len(pcm_bytes), "   flush:",flush)
-
         # If there's no work to do return immediately
         if len(pcm_bytes) == 0 and flush == False:
             return [] # no work to do
@@ -134,14 +132,12 @@ class OpusBufferedEncoder(OpusEncoder):
         # The associated number of samples are only that of actual
         # data, not the added silence.
         def flush_buffer() -> None:
-            #print("In flush_buffer()")
             # Sanity checks to satisfy mypy
             assert self._buffer_index is not None
             assert self._channels is not None
             assert self._buffer is not None
             
             # If the buffer is already empty, we have no work to do
-            #print("self._buffer_index:",self._buffer_index)
             if self._buffer_index == 0:
                 return
 
@@ -175,8 +171,6 @@ class OpusBufferedEncoder(OpusEncoder):
         # Copy the data remaining from the provided PCM into the
         # buffer.  Flush if required.
         def copy_insufficient_data() -> None:
-            #print("in copy_insufficient_data")
-
             # Sanity checks to satisfy mypy
             assert self._buffer is not None
             
@@ -194,7 +188,6 @@ class OpusBufferedEncoder(OpusEncoder):
             )
 
             self._buffer_index += remaining_data
-            #print("Set self._buffer_index to",self._buffer_index)
 
             # If we've been asked to flush the buffer then do so
             if flush:
@@ -203,12 +196,10 @@ class OpusBufferedEncoder(OpusEncoder):
         # Loop through the provided PCM and the current buffer,
         # encoding as we have full packets.
         while True:
-            #print("top of while loop")
             # There are two possibilities at this point: either we
             # have previously unencoded data still in the buffer or we
             # do not
             if self._buffer_index == 0:
-                #print("We do not have unencoded data")
                 # We do not have unencoded data
 
                 # We are free to progress through the PCM that has
@@ -250,7 +241,6 @@ class OpusBufferedEncoder(OpusEncoder):
                     return results
 
             else:
-                #print("We have unencoded data")
                 # We have unencoded data.
 
                 # Copy the provided PCM into the buffer (up until the
@@ -271,7 +261,6 @@ class OpusBufferedEncoder(OpusEncoder):
                         # count
                         remaining
                     )
-                    #print("Finished call to memmove")
                     pcm_index += remaining
                     self._buffer_index += remaining
                     assert self._buffer_index == len(self._buffer)
