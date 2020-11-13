@@ -79,6 +79,36 @@ You can then open the file ``htmlcov/index.html``, which gives a
 detailed line-by-line analysis of the tests' coverage.
 
 
+Static Type Checking
+--------------------
+
+As at November 2020, a considerable portion of PyOgg has had type
+hinting added.  This allows for static type checkers such as
+`mypy <http://mypy-lang.org/>`_ to be used, which can help detect bugs,
+without even running your code.
+
+Mypy is run as part of the Travis continuous integration script;
+checking is performed on both the PyOgg package itself and also its
+automated tests.
+
+To run the mypy checks yourself, you will need to have mypy
+installed::
+
+  pip install mypy
+
+The tests for the PyOgg package can then by run from the root of the
+git repository using::
+
+  mypy -p pyogg
+
+Checking of the automated tests can be done (also from the root of the
+repository) with::
+
+  mypy tests/*.py
+
+
+
+
 Documentation
 -------------
 
