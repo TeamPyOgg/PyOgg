@@ -112,9 +112,22 @@ repository) with::
 Documentation
 -------------
 
-This documentation is built using Sphinx.  To install it::
+The documentation is built automatically by Read the Docs everytime
+there is an update of the master branch of the git repository.  Thus,
+the latest version, and indeed the previous versions, of the
+documentation are always available at `Read the Docs
+<https://pyogg.readthedocs.io/en/latest/>`_.
+
+Further, the documentation is also built as part of the Travis
+continuous integration script.
+
+To build the documentation yourself requires Sphinx.  To install it::
 
   pip install sphinx
+
+If you are building the documentation under Windows, you may need to
+install `Make for Windows
+<http://gnuwin32.sourceforge.net/packages/make.htm>`_.
 
 To build the documentation run::
 
