@@ -12,13 +12,14 @@ before_install:
     fi
     
 install:
-    - python3 -m pip install --upgrade twine cibuildwheel numpy pytest mypy
+    - python3 -m pip install --upgrade twine cibuildwheel numpy pytest mypy sphinx sphinx-rtd-theme
 
 script:
    - python3 setup.py install
    - pytest -v tests
    - mypy -p pyogg
    - mypy tests/*.py
+   - cd docs; make html
    
 stages:
   - test
