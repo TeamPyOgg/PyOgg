@@ -16,20 +16,26 @@ if __name__ == "__main__":
     original_length = wave_read.getnframes()
     print("Length:", original_length)
 
+    # Create a OpusBufferedEncoder
+    opus_buffered_encoder = pyogg.OpusBufferedEncoder()
+    opus_buffered_encoder.set_application("audio")
+    opus_buffered_encoder.set_sampling_frequency(samples_per_second)
+    opus_buffered_encoder.set_channels(channels)
+    opus_buffered_encoder.set_frame_size(20) # milliseconds
+    
     # Create an OggOpusWriter
     output_filename = filename+".opus"
     print("Writing OggOpus file to '{:s}'".format(output_filename))
-    ogg_opus_writer = pyogg.OggOpusWriter(output_filename)
-    ogg_opus_writer.set_application("audio")
-    ogg_opus_writer.set_sampling_frequency(samples_per_second)
-    ogg_opus_writer.set_channels(channels)
-    ogg_opus_writer.set_frame_size(20) # milliseconds
+    ogg_opus_writer = pyogg.OggOpusWriter(
+        output_filename,
+        opus_buffered_encoder
+    )
 
     # Calculate the desired frame size (in samples per channel)
     desired_frame_duration = 20/1000 # milliseconds
     desired_frame_size = int(desired_frame_duration * samples_per_second)
     
-    # Loop through the wav file's PCM data and encode it as Opus
+    # Loop through the wav file's PCM data and write it as OggOpus
     chunk_size = 1000 # bytes
     while True:
         # Get data from the wav file
@@ -40,7 +46,7 @@ if __name__ == "__main__":
             break
 
         # Encode the PCM data
-        ogg_opus_writer.encode(pcm)
+        ogg_opus_writer.write(pcm)
 
     # We've finished writing the file
     ogg_opus_writer.close()

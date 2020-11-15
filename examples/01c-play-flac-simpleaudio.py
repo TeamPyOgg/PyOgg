@@ -31,7 +31,7 @@
 # Finished.
 
 import pyogg
-import simpleaudio
+import simpleaudio # type: ignore
 
 
 # Specify the filename to read

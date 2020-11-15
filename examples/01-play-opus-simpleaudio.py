@@ -29,8 +29,8 @@
 
 try:
     import pyogg
-    import simpleaudio as sa
-    import numpy
+    import simpleaudio as sa # type: ignore
+    import numpy # type: ignore
 except ImportError:
     import os
     should_install_requirements = input(\
@@ -54,7 +54,9 @@ except ImportError:
 
         popen = subprocess.Popen(install_command,
                                  stdout=subprocess.PIPE, universal_newlines=True)
+
         
+        assert popen.stdout is not None
         for stdout_line in iter(popen.stdout.readline, ""):
             print(stdout_line, end="")
             
@@ -65,8 +67,8 @@ except ImportError:
         print("Done.\n")
 
         import pyogg
-        import simpleaudio as sa
-        import numpy
+        import simpleaudio as sa # type: ignore
+        import numpy # type: ignore
 
     else:
         os._exit(0)

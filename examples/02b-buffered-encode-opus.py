@@ -62,7 +62,7 @@ if __name__ == "__main__":
             finished = True
 
         # Encode the PCM data
-        encoded_packets = opus_encoder.encode(pcm, flush=finished)
+        encoded_packets = opus_encoder.buffered_encode(pcm, flush=finished)
 
         # At this stage we now have a list of Opus-encoded packets.
         # These could be sent over UDP, for example, and then decoded
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             
         # For this example, we will now immediately decode the encoded
         # packets using OpusDecoder.
-        for encoded_packet in encoded_packets:
+        for encoded_packet, _, _ in encoded_packets:
             bytes_encoded += len(encoded_packet)
 
             decoded_pcm = opus_decoder.decode(encoded_packet)
