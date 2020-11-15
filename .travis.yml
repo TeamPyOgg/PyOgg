@@ -20,6 +20,7 @@ script:
    - pytest -v tests
    - mypy -p pyogg
    - mypy tests/*.py
+   - mypy examples/*.py
    - cd docs; make html
    - cd ..
    - cd examples; ./run-all-non-playing-examples.sh
