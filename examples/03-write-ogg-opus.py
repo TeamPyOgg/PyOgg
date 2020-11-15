@@ -46,7 +46,9 @@ if __name__ == "__main__":
             break
 
         # Encode the PCM data
-        ogg_opus_writer.write(pcm)
+        ogg_opus_writer.write(
+            memoryview(bytearray(pcm)) # FIXME
+        )
 
     # We've finished writing the file
     ogg_opus_writer.close()
