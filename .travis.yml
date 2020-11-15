@@ -22,7 +22,7 @@ script:
    - mypy tests/*.py
    - cd docs; make html
    - cd ..
-   - cd examples; ./run-all-examples.sh
+   - cd examples; ./run-all-non-playing-examples.sh
    - cd ..
    
    
