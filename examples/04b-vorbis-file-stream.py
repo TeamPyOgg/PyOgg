@@ -12,7 +12,7 @@ TODO
 
 import time
 
-import numpy
+import numpy # type: ignore
 import pyogg
 
 # Specify a file to process

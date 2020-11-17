@@ -17,10 +17,16 @@ install:
 
 script:
    - python3 setup.py install
+   - pip3 list
    - pytest -v tests
    - mypy -p pyogg
    - mypy tests/*.py
+   - mypy examples/*.py
    - cd docs; make html
+   - cd ..
+   - cd examples; ./run-all-non-playing-examples.sh
+   - cd ..
+   
    
 stages:
   - test
@@ -38,7 +44,8 @@ jobs:
     language: shell
     name: Test on MacOS
     
-  - os: xenial
+  - os: linux
+    dist: xenial
     language: python
     name: Test on Linux (Ubuntu Xenial)
     before_install:

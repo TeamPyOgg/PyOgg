@@ -15,7 +15,7 @@ OpusFileStream data was identical to OpusFile data.
 
 import time
 
-import numpy
+import numpy # type: ignore
 import pyogg
 
 # Specify a file to process
