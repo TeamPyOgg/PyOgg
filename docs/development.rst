@@ -84,7 +84,7 @@ Static Type Checking
 
 As at November 2020, a considerable portion of PyOgg has had type
 hinting added.  This allows for static type checkers such as
-`mypy <http://mypy-lang.org/>`_ to be used, which can help detect bugs,
+`mypy <http://mypy-lang.org/>`_ to be used, which can help detect bugs
 without even running your code.
 
 Mypy is run as part of the Travis continuous integration script;
@@ -107,6 +107,22 @@ repository) with::
   mypy tests/*.py
 
 
+Examples
+--------
+
+The examples directory of the git repository provides example audio
+files and example code showing how to use PyOgg.
+
+When run, some of the code examples use simpleaudio to play the audio
+files.
+
+The majority of the examples are run as part of the Travis continuous
+integration script.  Specifically, those examples that play audio
+files are skipped.  Including the example files as part of the
+continuous integration ensures that the examples are kept up-to-date
+with any changes made to PyOgg's API.  The Travis script calls
+``examples/run-all-non-playing-examples.sh``, which excludes any
+Python scripts with "play" in their name.
 
 
 Documentation
