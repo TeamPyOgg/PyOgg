@@ -44,7 +44,8 @@ jobs:
     language: shell
     name: Test on MacOS
     
-  - os: xenial
+  - os: linux
+    dist: xenial
     language: python
     name: Test on Linux (Ubuntu Xenial)
     before_install:
