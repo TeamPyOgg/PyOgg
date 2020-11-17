@@ -6,7 +6,7 @@ do
         continue
     fi
     echo "Running example $f:"
-    python $f
+    python3 $f
     if [ $? -ne 0 ]
     then
        exit 1
