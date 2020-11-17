@@ -17,6 +17,7 @@ install:
 
 script:
    - python3 setup.py install
+   - pip list
    - pytest -v tests
    - mypy -p pyogg
    - mypy tests/*.py
