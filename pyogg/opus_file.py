@@ -3,8 +3,9 @@ import ctypes
 from . import ogg
 from . import opus
 from .pyogg_error import PyOggError
+from .audio_file import AudioFile
 
-class OpusFile:
+class OpusFile(AudioFile):
     def __init__(self, path):
         # Open the file
         error = ctypes.c_int()
@@ -98,32 +99,3 @@ class OpusFile:
         # we're not copying the underlying data.
         #: Raw PCM data from audio file.
         self.buffer = memoryview(buf).cast('B')
-
-    def as_array(self):
-        """Returns the buffer as a NumPy array.
-
-        The shape of the returned array is in units of (number of
-        samples per channel, number of channels).
-
-        The data type is 16-bit signed integers.
-
-        The buffer is not copied, but rather the NumPy array
-        shares the memory with the buffer.
-
-        """
-
-        import numpy # type: ignore
-
-        # Convert the bytes buffer to a NumPy array
-        array = numpy.frombuffer(
-            self.buffer,
-            dtype=numpy.int16
-        )
-
-        # Reshape the array
-        return array.reshape(
-            (len(self.buffer)
-             // self.bytes_per_sample
-             // self.channels,
-             self.channels)
-        )
