@@ -6,7 +6,7 @@ from .pyogg_error import PyOggError
 from .audio_file import AudioFile
 
 class OpusFile(AudioFile):
-    def __init__(self, path):
+    def __init__(self, path: str) -> None:
         # Open the file
         error = ctypes.c_int()
         of = opus.op_open_file(
@@ -38,6 +38,7 @@ class OpusFile(AudioFile):
             ctypes.pointer(buf),
             ctypes.c_void_p
         )
+        assert buf_ptr.value is not None # for mypy
         buf_ptr_zero = buf_ptr.value
 
         #: Bytes per sample
@@ -49,7 +50,7 @@ class OpusFile(AudioFile):
         while True:
             # Calculate remaining buffer size
             remaining_buffer = (
-                len(buf)
+                len(buf) # int
                 - (buf_ptr.value
                    - buf_ptr_zero) // self.bytes_per_sample
             )
@@ -81,6 +82,7 @@ class OpusFile(AudioFile):
                 * self.bytes_per_sample
                 * self.channels
             )
+            assert buf_ptr.value is not None # for mypy
 
             samples += ns
 
@@ -95,7 +97,5 @@ class OpusFile(AudioFile):
         #: Number of samples per second (per channel).  Always 48,000.
         self.frequency = 48000
 
-        # Store the buffer as bytes, using memory view to ensure that 
-        # we're not copying the underlying data.
         #: Raw PCM data from audio file.
-        self.buffer = memoryview(buf).cast('B')
+        self.buffer = buf
