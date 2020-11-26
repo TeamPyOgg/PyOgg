@@ -28,9 +28,9 @@ class AudioFile:
         )
 
         # Reshape the array
+        print("len(self.buffer):", len(self.buffer))
         return array.reshape(
             (len(self.buffer)
-             // self.bytes_per_sample
              // self.channels,
              self.channels)
         )

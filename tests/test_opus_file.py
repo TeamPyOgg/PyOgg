@@ -10,7 +10,12 @@ def test_error_in_filename():
     with pytest.raises(pyogg.PyOggError):
         opus_file = pyogg.OpusFile(filename)
     
-
+# This shouldn't be a source of error, but it currently is.
+def test_unicode_filename():
+    filename = "unicode filename 🎵.opus"
+    with pytest.raises(pyogg.PyOggError):
+        opus_file = pyogg.OpusFile(filename)
+        
 def test_as_array():
     # Load the demonstration file that is exactly 5 seconds long
     filename = "../examples/left-right-demo-5s.opus"
@@ -45,7 +50,7 @@ def test_as_bytes():
         * bytes_per_sample
         * channels
     )
-    duration_bytes = len(opus_file.buffer)
+    duration_bytes = len(bytes(opus_file.buffer))
     assert duration_bytes == expected_duration_bytes
 
 
