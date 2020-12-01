@@ -802,8 +802,8 @@ if PYOGG_OGG_AVAIL and PYOGG_VORBIS_AVAIL and PYOGG_VORBIS_FILE_AVAIL:
         def vorbis_encode_setup_init(vi):
             return libvorbisenc.vorbis_encode_setup_init(vi)
 
-        libvorbisenc.vorbis_encode_setup_init.restype = c_int
-        libvorbisenc.vorbis_encode_setup_init.argtypes = [vi_p, c_int, c_void_p]
+        libvorbisenc.vorbis_encode_ctl.restype = c_int
+        libvorbisenc.vorbis_encode_ctl.argtypes = [vi_p, c_int, c_void_p]
 
         def vorbis_encode_ctl(vi, number, arg):
             return libvorbisenc.vorbis_encode_ctl(vi, number, arg)
