@@ -54,7 +54,7 @@ def test_one_frame_audio() -> None:
 
     # Test the length of the output
     opus_file = pyogg.OpusFile(filename)
-    assert len(opus_file.buffer) == bytes_per_sample * frame_size_samples
+    assert len(bytes(opus_file.buffer)) == bytes_per_sample * frame_size_samples
     
 
 def test_n_frames_audio() -> None:
@@ -85,7 +85,7 @@ def test_n_frames_audio() -> None:
 
     # Test the length of the output
     opus_file = pyogg.OpusFile(filename)
-    assert len(opus_file.buffer) == bytes_per_sample * frame_size_samples * n
+    assert len(bytes(opus_file.buffer)) == bytes_per_sample * frame_size_samples * n
     
     
 def test_duplicate_audio() -> None:
@@ -101,7 +101,8 @@ def test_duplicate_audio() -> None:
     encoder.set_channels(2)
     encoder.set_frame_size(20) # milliseconds
     writer = pyogg.OggOpusWriter(out_filename, encoder)
-    writer.write(opus_file.buffer)
+    #writer.write(opus_file.as_array())
+    writer.write(memoryview(opus_file.buffer))
 
     
 def test_already_loaded_file() -> None:
@@ -110,7 +111,7 @@ def test_already_loaded_file() -> None:
     opus_file = pyogg.OpusFile(filename)
 
     # Save the audio using OggOpusWriter
-    out_filename = "test_ogg_opus_writer__test_duplicate_audio.opus"
+    out_filename = "test_ogg_opus_writer__test_already_loaded_file.opus"
     f = open(out_filename, "wb")
     encoder = pyogg.OpusBufferedEncoder()
     encoder.set_application("audio")
@@ -118,7 +119,7 @@ def test_already_loaded_file() -> None:
     encoder.set_channels(2)
     encoder.set_frame_size(20) # milliseconds
     writer = pyogg.OggOpusWriter(f, encoder)
-    writer.write(opus_file.buffer)
+    writer.write(opus_file.as_array())
 
     # Close the file
     writer.close()

@@ -94,10 +94,15 @@ class FlacFile(AudioFile):
 
         flac.FLAC__stream_decoder_finish(self.decoder)
 
-        # Convert buffer to bytes
-        self.buffer = bytes(self.buffer)
-
         #: Length of buffer
         self.buffer_length = len(self.buffer)
 
         self.bytes_per_sample = ctypes.sizeof(flac.FLAC__int16) # See definition of Buffer in metadata_callback()
+
+        # Cast buffer to one-dimensional array of chars
+        print("len(self.buffer):",len(self.buffer))
+        CharBuffer = (
+            ctypes.c_byte *
+            (self.bytes_per_sample * len(self.buffer))
+        )
+        self.buffer = CharBuffer.from_buffer(self.buffer) 

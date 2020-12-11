@@ -97,5 +97,10 @@ class OpusFile(AudioFile):
         #: Number of samples per second (per channel).  Always 48,000.
         self.frequency = 48000
 
+        # Cast buffer to a one-dimensional array of chars
         #: Raw PCM data from audio file.
-        self.buffer = buf
+        CharBuffer = (
+            ctypes.c_byte
+            * (self.bytes_per_sample * self.channels * pcm_size)
+        )
+        self.buffer = CharBuffer.from_buffer(buf)
