@@ -11,26 +11,47 @@ class AudioFile:
         The shape of the returned array is in units of (number of
         samples per channel, number of channels).
 
-        The data type is 16-bit signed integers.
+        The data type is either 8-bit or 16-bit signed integers,
+        depending on bytes_per_sample.
 
         The buffer is not copied, but rather the NumPy array
         shares the memory with the buffer.
 
         """
+        # Assumes that self.buffer is a one-dimensional array of
+        # bytes and that channels are interleaved.
+        
         import numpy # type: ignore
         
         assert self.buffer is not None
+        assert self.channels is not None
 
-        # Convert the bytes buffer to a NumPy array
+        # The following code assumes that the bytes in the buffer
+        # represent 8-bit or 16-bit signed ints.  Ensure the number of
+        # bytes per sample matches that assumption.
+        assert self.bytes_per_sample == 1 or self.bytes_per_sample == 2
+
+        # Create a dictionary mapping bytes per sample to numpy data
+        # types
+        dtype = {
+            1: numpy.int8,
+            2: numpy.int16
+        }
+        
+        # Convert the ctypes buffer to a NumPy array
         array = numpy.frombuffer(
             self.buffer,
-            dtype=numpy.int16
+            dtype=dtype[self.bytes_per_sample]
         )
 
         # Reshape the array
+        print("len(array):", len(array))
         print("len(self.buffer):", len(self.buffer))
+        print("self.channels:", self.channels)
+        
         return array.reshape(
             (len(self.buffer)
+             // self.bytes_per_sample
              // self.channels,
              self.channels)
         )
