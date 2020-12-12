@@ -211,7 +211,9 @@ class OpusBufferedEncoder(OpusEncoder):
                     # We have enough data remaining in the provided
                     # PCM to encode more than an entire frame without
                     # copying any data.
-                    frame_data = pcm_bytes[
+                    # Unfortunately, splicing a ctypes array copies
+                    # the array.  To avoid the copy we use memoryview.
+                    frame_data = memoryview(pcm_bytes)[
                         pcm_index:pcm_index+self._frame_size_bytes
                     ]
 
