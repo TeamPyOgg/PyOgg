@@ -35,7 +35,7 @@ class VorbisFile(AudioFile):
         # Sanity check the number of bytes per sample
         assert bytes_per_sample==1 or bytes_per_sample==2
 
-        # Sanity check that the vorbis library is available: for mypy
+        # Sanity check that the vorbis library is available (for mypy)
         assert vorbis.libvorbisfile is not None
         
         #: Bytes per sample
