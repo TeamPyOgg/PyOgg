@@ -1,6 +1,11 @@
 from .pyogg_error import PyOggError
 
 class AudioFile:
+    """Abstract base class for audio files.
+
+    This class is a base class for audio files (such as Vorbis, Opus,
+    and FLAC).  It should not be instatiated directly.
+    """
     def __init__(self):
         raise PyOggError("AudioFile is an Abstract Base Class "+
                          "and should not be instantiated") 
