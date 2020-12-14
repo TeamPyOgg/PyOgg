@@ -47,6 +47,9 @@ def get_raw_libname(name):
     for x in "0123456789._- ":name=name.replace(x,"")
     return name
 
+# Define a function to convert strings to char-pointers.  In Python 3
+# all strings are Unicode, while in Python 2 they were ASCII-encoded.
+# FIXME: Does PyOgg even support Python 2?
 if sys.version_info.major > 2:
     to_char_p = lambda s: s.encode('utf-8')
 else:

@@ -2,6 +2,7 @@ import ctypes
 from itertools import chain
 
 from . import flac
+from .audio_file import AudioFile
 from .pyogg_error import PyOggError
 
 def _to_char_p(string):
@@ -14,7 +15,7 @@ def _resize_array(array, new_size):
     return (array._type_*new_size).from_address(ctypes.addressof(array))
 
 
-class FlacFile:
+class FlacFile(AudioFile):
     def write_callback(self, decoder, frame, buffer, client_data):
         multi_channel_buf = _resize_array(buffer.contents, self.channels)
         arr_size = frame.contents.header.blocksize
@@ -93,39 +94,15 @@ class FlacFile:
 
         flac.FLAC__stream_decoder_finish(self.decoder)
 
-        # Convert buffer to bytes
-        self.buffer = bytes(self.buffer)
-
         #: Length of buffer
         self.buffer_length = len(self.buffer)
 
         self.bytes_per_sample = ctypes.sizeof(flac.FLAC__int16) # See definition of Buffer in metadata_callback()
 
-    def as_array(self):
-        """Returns the buffer as a NumPy array.
-
-        The shape of the returned array is in units of (number of
-        samples per channel, number of channels).
-
-        The data type is 16-bit signed integers.
-
-        The buffer is not copied, but rather the NumPy array
-        shares the memory with the buffer.
-
-        """
-
-        import numpy # type: ignore
-
-        # Convert the bytes buffer to a NumPy array
-        array = numpy.frombuffer(
-            self.buffer,
-            dtype=numpy.int16
+        # Cast buffer to one-dimensional array of chars
+        print("len(self.buffer):",len(self.buffer))
+        CharBuffer = (
+            ctypes.c_byte *
+            (self.bytes_per_sample * len(self.buffer))
         )
-
-        # Reshape the array
-        return array.reshape(
-            (len(self.buffer)
-             // self.bytes_per_sample
-             // self.channels,
-             self.channels)
-        )
+        self.buffer = CharBuffer.from_buffer(self.buffer) 

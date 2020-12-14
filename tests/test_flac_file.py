@@ -42,7 +42,7 @@ def test_as_bytes():
         * bytes_per_sample
         * channels
     )
-    duration_bytes = len(flac_file.buffer)
+    duration_bytes = len(bytes(flac_file.buffer))
     assert duration_bytes == expected_duration_bytes
 
 

@@ -68,7 +68,7 @@ def test_same_data_as_opus_file():
         # production code.
         buf_all += buf
         
-    assert buf_all == opus_file.buffer
+    assert buf_all == bytes(opus_file.buffer)
     
     
 def test_same_data_as_opus_file_using_as_array():

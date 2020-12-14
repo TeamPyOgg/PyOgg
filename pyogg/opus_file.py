@@ -3,9 +3,10 @@ import ctypes
 from . import ogg
 from . import opus
 from .pyogg_error import PyOggError
+from .audio_file import AudioFile
 
-class OpusFile:
-    def __init__(self, path):
+class OpusFile(AudioFile):
+    def __init__(self, path: str) -> None:
         # Open the file
         error = ctypes.c_int()
         of = opus.op_open_file(
@@ -37,6 +38,7 @@ class OpusFile:
             ctypes.pointer(buf),
             ctypes.c_void_p
         )
+        assert buf_ptr.value is not None # for mypy
         buf_ptr_zero = buf_ptr.value
 
         #: Bytes per sample
@@ -48,7 +50,7 @@ class OpusFile:
         while True:
             # Calculate remaining buffer size
             remaining_buffer = (
-                len(buf)
+                len(buf) # int
                 - (buf_ptr.value
                    - buf_ptr_zero) // self.bytes_per_sample
             )
@@ -80,6 +82,7 @@ class OpusFile:
                 * self.bytes_per_sample
                 * self.channels
             )
+            assert buf_ptr.value is not None # for mypy
 
             samples += ns
 
@@ -94,36 +97,10 @@ class OpusFile:
         #: Number of samples per second (per channel).  Always 48,000.
         self.frequency = 48000
 
-        # Store the buffer as bytes, using memory view to ensure that 
-        # we're not copying the underlying data.
+        # Cast buffer to a one-dimensional array of chars
         #: Raw PCM data from audio file.
-        self.buffer = memoryview(buf).cast('B')
-
-    def as_array(self):
-        """Returns the buffer as a NumPy array.
-
-        The shape of the returned array is in units of (number of
-        samples per channel, number of channels).
-
-        The data type is 16-bit signed integers.
-
-        The buffer is not copied, but rather the NumPy array
-        shares the memory with the buffer.
-
-        """
-
-        import numpy # type: ignore
-
-        # Convert the bytes buffer to a NumPy array
-        array = numpy.frombuffer(
-            self.buffer,
-            dtype=numpy.int16
+        CharBuffer = (
+            ctypes.c_byte
+            * (self.bytes_per_sample * self.channels * pcm_size)
         )
-
-        # Reshape the array
-        return array.reshape(
-            (len(self.buffer)
-             // self.bytes_per_sample
-             // self.channels,
-             self.channels)
-        )
+        self.buffer = CharBuffer.from_buffer(buf)

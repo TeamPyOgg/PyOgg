@@ -210,8 +210,11 @@ class OpusBufferedEncoder(OpusEncoder):
                 if pcm_len - pcm_index > self._frame_size_bytes:
                     # We have enough data remaining in the provided
                     # PCM to encode more than an entire frame without
-                    # copying any data.
-                    frame_data = pcm_bytes[
+                    # copying any data.  Unfortunately, splicing a
+                    # ctypes array copies the array.  To avoid the
+                    # copy we use memoryview see
+                    # https://mattgwwalker.wordpress.com/2020/12/12/python-ctypes-slicing/
+                    frame_data = memoryview(pcm_bytes)[
                         pcm_index:pcm_index+self._frame_size_bytes
                     ]
 

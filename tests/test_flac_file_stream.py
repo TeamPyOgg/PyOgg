@@ -65,7 +65,7 @@ def test_same_data_as_flac_file():
         # production code.
         buf_all += buf
         
-    assert buf_all == flac_file.buffer
+    assert buf_all == bytes(flac_file.buffer)
     
     
 def test_same_data_as_flac_file_using_as_array():
