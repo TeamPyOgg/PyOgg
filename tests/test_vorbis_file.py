@@ -49,6 +49,37 @@ def test_as_bytes():
     assert duration_bytes == expected_duration_bytes
 
 
+def test_as_bytes_one_byte_per_sample():
+    # Load the demonstration file that is exactly 5 seconds long
+    filename = "../examples/left-right-demo-5s.ogg"
+    vorbis_file = pyogg.VorbisFile(filename, bytes_per_sample=1)
+
+    # Test that the loaded file is indeed 5 seconds long (using
+    # the buffer member variable)
+    expected_duration_seconds = 5
+    samples_per_second = vorbis_file.frequency
+    channels = vorbis_file.channels
+    bytes_per_sample = vorbis_file.bytes_per_sample
+    expected_duration_bytes = (
+        expected_duration_seconds
+        * samples_per_second
+        * bytes_per_sample
+        * channels
+    )
+    duration_bytes = len(vorbis_file.buffer)
+    assert duration_bytes == expected_duration_bytes
+
+
+def test_bytes_per_sample():
+    # Load the demonstration file that is exactly 5 seconds long
+    filename = "../examples/left-right-demo-5s.ogg"
+    vorbis_file_1 = pyogg.VorbisFile(filename, bytes_per_sample=1)
+    vorbis_file_2 = pyogg.VorbisFile(filename, bytes_per_sample=2)
+
+    # Test that the buffer lengths differ by a factor of two.
+    assert len(vorbis_file_2.buffer) == len(vorbis_file_1.buffer)*2
+    
+
 def test_output_via_wav():
     # Load the demonstration file that is exactly 5 seconds long
     filename = "../examples/left-right-demo-5s.ogg"
@@ -63,3 +94,26 @@ def test_output_via_wav():
     wave_out.setsampwidth(vorbis_file.bytes_per_sample)
     wave_out.setframerate(vorbis_file.frequency)
     wave_out.writeframes(vorbis_file.buffer)
+
+
+def test_output_via_wav_one_byte_per_sample():
+    # Load the demonstration file that is exactly 5 seconds long
+    filename = "../examples/left-right-demo-5s.ogg"
+    vorbis_file = pyogg.VorbisFile(
+        filename,
+        bytes_per_sample = 1,
+        signed = False
+    )
+
+    import wave
+    wave_out = wave.open(
+        "test_vorbis_file__test_output_via_wav_one_byte_per_sample.wav",
+        "wb"
+    )
+    wave_out.setnchannels(vorbis_file.channels)
+    wave_out.setsampwidth(vorbis_file.bytes_per_sample)
+    wave_out.setframerate(vorbis_file.frequency)
+    wave_out.writeframes(vorbis_file.buffer)
+
+    
+    

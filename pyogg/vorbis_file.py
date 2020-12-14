@@ -17,7 +17,10 @@ from .pyogg_error import PyOggError
 # They may work in macOS and Linux, they don't work under Windows.
 
 class VorbisFile(AudioFile):
-    def __init__(self, path: str, bytes_per_sample: int = 2) -> None:
+    def __init__(self,
+                 path: str,
+                 bytes_per_sample: int = 2,
+                 signed:bool = True) -> None:
         """Load an OggVorbis File.
         
         path specifies the location of the Vorbis file.  Unicode
@@ -41,6 +44,9 @@ class VorbisFile(AudioFile):
         #: Bytes per sample
         self.bytes_per_sample = bytes_per_sample
 
+        #: Samples are signed (rather than unsigned)
+        self.signed = signed
+
         # Create a Vorbis File structure
         vf = vorbis.OggVorbis_File()
 
@@ -58,7 +64,10 @@ class VorbisFile(AudioFile):
             )
 
         # Extract info from the Vorbis file
-        info = vorbis.libvorbisfile.ov_info(ctypes.byref(vf), -1)
+        info = vorbis.libvorbisfile.ov_info(
+            ctypes.byref(vf),
+            -1 # the current logical bitstream
+        )
 
         #: Number of channels in audio file.
         self.channels = info.contents.channels
@@ -115,7 +124,7 @@ class VorbisFile(AudioFile):
                 read_size,
                 0, # Little endian
                 self.bytes_per_sample,
-                1, # Signed PCM
+                int(self.signed),
                 ctypes.byref(bitstream)
             )
 
@@ -146,6 +155,7 @@ class VorbisFile(AudioFile):
 
             # Update the pointer into the buffer
             buf_ptr.value += result
+            
 
         # Close the file and clean up memory
         vorbis.libvorbisfile.ov_clear(ctypes.byref(vf))

@@ -45,10 +45,6 @@ class AudioFile:
         )
 
         # Reshape the array
-        print("len(array):", len(array))
-        print("len(self.buffer):", len(self.buffer))
-        print("self.channels:", self.channels)
-        
         return array.reshape(
             (len(self.buffer)
              // self.bytes_per_sample
