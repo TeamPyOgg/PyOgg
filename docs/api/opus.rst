@@ -21,12 +21,16 @@ To read an entire OggOpus-encoded audio file into memory, use the
 :ref:`getting_started`.  For a more elaborate example see
 :ref:`example_play_oggopus`.
 
+For documentation of the inherited attributes, please see
+:py:class:`pyogg.audio_file.AudioFile`.
+     
 This class requires the shared libraries Ogg, Opus, and Opusfile.
 
 .. currentmodule:: pyogg.opus_file
 .. autoclass:: OpusFile
    :members:
    :undoc-members:
+   :inherited-members:
 
 OpusFileStream
 --------------

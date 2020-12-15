@@ -13,6 +13,7 @@ datatypes.
 
 .. toctree::
 
+   base_classes
    opus
    vorbis
    flac

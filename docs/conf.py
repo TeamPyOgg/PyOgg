@@ -29,10 +29,21 @@ author = 'Zuzu-Typ and Matthew Walker'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    #'sphinx.ext.autodoc.typehints',
     'sphinx.ext.autosummary',
-    'sphinx_rtd_theme'
+    #'sphinx_rtd_theme',
+    'sphinx_autodoc_typehints'
 ]
 autosummary_generate = True  # Turn on sphinx.ext.autosummary
+#autodoc_typehints = 'description'
+
+autodoc_default_options = {
+    'members': True,
+    'member-order': 'bysource',
+    'special-members': '__init__',
+    'undoc-members': True,
+    'exclude-members': '__weakref__'
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

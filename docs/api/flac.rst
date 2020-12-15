@@ -12,6 +12,7 @@ To read an entire OggFlac-encoded audio file into memory, use the
 .. autoclass:: FlacFile
    :members:
    :undoc-members:
+   :inherited-members:
 
 FlacFileStream
 ----------------

@@ -101,8 +101,9 @@ def test_duplicate_audio() -> None:
     encoder.set_channels(2)
     encoder.set_frame_size(20) # milliseconds
     writer = pyogg.OggOpusWriter(out_filename, encoder)
-    #writer.write(opus_file.as_array())
-    writer.write(memoryview(opus_file.buffer))
+    # Mypy doesn't yet know it's acceptable to pass ctypes.Arrays to
+    # memoryview
+    writer.write(memoryview(opus_file.buffer)) #type: ignore
 
     
 def test_already_loaded_file() -> None:

@@ -7,6 +7,14 @@ from .audio_file import AudioFile
 
 class OpusFile(AudioFile):
     def __init__(self, path: str) -> None:
+        """Create an OpusFile instance.
+
+        Read the file specified in path and decode the entire PCM into
+        memory.
+
+        :param path: The filename of the OggOpus-encoded audio file.
+
+        """
         # Open the file
         error = ctypes.c_int()
         of = opus.op_open_file(
@@ -22,7 +30,6 @@ class OpusFile(AudioFile):
             )
 
         # Extract the number of channels in the newly opened file
-        #: Number of channels in audio file.
         self.channels = opus.op_channel_count(of, -1)
 
         # Allocate sufficient memory to store the entire PCM
@@ -41,7 +48,7 @@ class OpusFile(AudioFile):
         assert buf_ptr.value is not None # for mypy
         buf_ptr_zero = buf_ptr.value
 
-        #: Bytes per sample
+        # Bytes per sample
         self.bytes_per_sample = ctypes.sizeof(opus.opus_int16)
 
         # Read through the entire file, copying the PCM into the
@@ -94,11 +101,12 @@ class OpusFile(AudioFile):
         opus.op_free(of)
 
         # Opus files are always stored at 48k samples per second
-        #: Number of samples per second (per channel).  Always 48,000.
         self.frequency = 48000
 
+        # Opus audio is always signed
+        self.signed = True
+
         # Cast buffer to a one-dimensional array of chars
-        #: Raw PCM data from audio file.
         CharBuffer = (
             ctypes.c_byte
             * (self.bytes_per_sample * self.channels * pcm_size)

@@ -12,6 +12,7 @@ To read an entire OggVorbis-encoded audio file into memory, use the
 .. autoclass:: VorbisFile
    :members:
    :undoc-members:
+   :inherited-members:
 
 VorbisFileStream
 ----------------
