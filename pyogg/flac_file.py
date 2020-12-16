@@ -82,7 +82,10 @@ class FlacFile(AudioFile):
         )
 
         if init_status: # error
-            raise PyOggError("An error occured when trying to open '{}': {}".format(path, flac.FLAC__StreamDecoderInitStatusEnum[init_status]))
+            error = flac.FLAC__StreamDecoderInitStatusEnum[init_status]
+            raise PyOggError(
+                "An error occured when trying to open '{}': {}".format(path, error)
+            )
 
         metadata_status = (flac.FLAC__stream_decoder_process_until_end_of_metadata(self.decoder))
         if not metadata_status: # error
@@ -100,9 +103,12 @@ class FlacFile(AudioFile):
         self.bytes_per_sample = ctypes.sizeof(flac.FLAC__int16) # See definition of Buffer in metadata_callback()
 
         # Cast buffer to one-dimensional array of chars
-        print("len(self.buffer):",len(self.buffer))
         CharBuffer = (
             ctypes.c_byte *
             (self.bytes_per_sample * len(self.buffer))
         )
         self.buffer = CharBuffer.from_buffer(self.buffer) 
+
+        # FLAC audio is always signed.  See
+        # https://xiph.org/flac/api/group__flac__stream__decoder.html#gaf98a4f9e2cac5747da6018c3dfc8dde1
+        self.signed = True
