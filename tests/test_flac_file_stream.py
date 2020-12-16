@@ -10,7 +10,10 @@ def test_error_in_filename():
         
 def test_total_length():
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.flac"
+    filename = str(
+        pytest.pyogg.rootdir
+        / "examples/left-right-demo-5s.flac"
+    )
     
     # Open the file using FlacFileStream, which does not read the entire
     # file immediately.
@@ -41,8 +44,11 @@ def test_total_length():
 
 def test_same_data_as_flac_file():
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.flac"
-
+    filename = str(
+        pytest.pyogg.rootdir
+        / "examples/left-right-demo-5s.flac"
+    )
+    
     # Open the file using FlacFile to read the entire file into memory
     flac_file = pyogg.FlacFile(filename)
     
@@ -72,8 +78,11 @@ def test_same_data_as_flac_file_using_as_array():
     import numpy # type: ignore
     
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.flac"
-
+    filename = str(
+        pytest.pyogg.rootdir
+        / "examples/left-right-demo-5s.flac"
+    )
+    
     # Open the file using FlacFile to read the entire file into memory
     flac_file = pyogg.FlacFile(filename)
     
