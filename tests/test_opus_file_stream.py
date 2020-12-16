@@ -2,8 +2,6 @@ import pytest
 import pyogg
 import os
 
-os.chdir(os.path.dirname(__file__))
-
 def test_error_in_filename():
     # Load a non-existant file
     filename = "does-not-exist.opus"
@@ -13,7 +11,10 @@ def test_error_in_filename():
         
 def test_total_length():
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.opus"
+    filename = str(
+        pytest.pyogg.rootdir
+        / "examples/left-right-demo-5s.opus"
+    )
     
     # Open the file using OpusFileStream, which does not read the entire
     # file immediately.
@@ -44,7 +45,10 @@ def test_total_length():
 
 def test_same_data_as_opus_file():
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.opus"
+    filename = str(
+        pytest.pyogg.rootdir
+        / "examples/left-right-demo-5s.opus"
+    )
 
     # Open the file using OpusFile to read the entire file into memory
     opus_file = pyogg.OpusFile(filename)
@@ -75,7 +79,10 @@ def test_same_data_as_opus_file_using_as_array():
     import numpy # type: ignore
     
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.opus"
+    filename = str(
+        pytest.pyogg.rootdir
+        / "examples/left-right-demo-5s.opus"
+    )
 
     # Open the file using OpusFile to read the entire file into memory
     opus_file = pyogg.OpusFile(filename)

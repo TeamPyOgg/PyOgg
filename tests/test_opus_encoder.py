@@ -2,8 +2,6 @@ import pytest
 import pyogg
 import os
 
-os.chdir(os.path.dirname(__file__))
-
 # Function to create an encoder and encode a sample of silence
 def init_encoder(samples_per_second: int = 48000,
                  application: str = "audio",
