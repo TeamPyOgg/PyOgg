@@ -1372,21 +1372,62 @@ if PYOGG_FLAC_AVAIL:
         _fields_ = [("protected_", POINTER(FLAC__StreamDecoderProtected)),
                     ("private_", POINTER(FLAC__StreamDecoderPrivate))]
 
-    FLAC__StreamDecoderReadCallback = CFUNCTYPE(FLAC__StreamDecoderReadStatus, POINTER(FLAC__StreamDecoder), POINTER(FLAC__byte*0), c_size_t_p, c_void_p)
+    FLAC__StreamDecoderReadCallback = CFUNCTYPE(
+        FLAC__StreamDecoderReadStatus,
+        POINTER(FLAC__StreamDecoder),
+        POINTER(FLAC__byte*0),
+        c_size_t_p,
+        c_void_p
+    )
 
-    FLAC__StreamDecoderSeekCallback = CFUNCTYPE(FLAC__StreamDecoderSeekStatus, POINTER(FLAC__StreamDecoder), FLAC__uint64, c_void_p)
+    FLAC__StreamDecoderSeekCallback = CFUNCTYPE(
+        FLAC__StreamDecoderSeekStatus,
+        POINTER(FLAC__StreamDecoder),
+        FLAC__uint64,
+        c_void_p
+    )
 
-    FLAC__StreamDecoderTellCallback = CFUNCTYPE(FLAC__StreamDecoderTellStatus, POINTER(FLAC__StreamDecoder), FLAC__uint64_p, c_void_p)
+    FLAC__StreamDecoderTellCallback = CFUNCTYPE(
+        FLAC__StreamDecoderTellStatus,
+        POINTER(FLAC__StreamDecoder),
+        FLAC__uint64_p,
+        c_void_p
+    )
 
-    FLAC__StreamDecoderLengthCallback = CFUNCTYPE(FLAC__StreamDecoderLengthStatus, POINTER(FLAC__StreamDecoder), FLAC__uint64_p, c_void_p)
+    FLAC__StreamDecoderLengthCallback = CFUNCTYPE(
+        FLAC__StreamDecoderLengthStatus,
+        POINTER(FLAC__StreamDecoder),
+        FLAC__uint64_p,
+        c_void_p
+    )
 
-    FLAC__StreamDecoderEofCallback = CFUNCTYPE(FLAC__bool, POINTER(FLAC__StreamDecoder), c_void_p)
+    FLAC__StreamDecoderEofCallback = CFUNCTYPE(
+        FLAC__bool,
+        POINTER(FLAC__StreamDecoder),
+        c_void_p
+    )
 
-    FLAC__StreamDecoderWriteCallback = CFUNCTYPE(FLAC__StreamDecoderWriteStatus, POINTER(FLAC__StreamDecoder), POINTER(FLAC__Frame), POINTER(FLAC__int32_p*0), c_void_p)#FLAC__int32_p*0, c_void_p)
+    FLAC__StreamDecoderWriteCallback = CFUNCTYPE(
+        FLAC__StreamDecoderWriteStatus,
+        POINTER(FLAC__StreamDecoder),
+        POINTER(FLAC__Frame),
+        POINTER(FLAC__int32_p*0),
+        c_void_p
+    )
 
-    FLAC__StreamDecoderMetadataCallback = CFUNCTYPE(None, POINTER(FLAC__StreamDecoder), POINTER(FLAC__StreamMetadata), c_void_p)
+    FLAC__StreamDecoderMetadataCallback = CFUNCTYPE(
+        None,
+        POINTER(FLAC__StreamDecoder),
+        POINTER(FLAC__StreamMetadata),
+        c_void_p
+    )
 
-    FLAC__StreamDecoderErrorCallback = CFUNCTYPE(None, POINTER(FLAC__StreamDecoder), FLAC__StreamDecoderErrorStatus, c_void_p)
+    FLAC__StreamDecoderErrorCallback = CFUNCTYPE(
+        None,
+        POINTER(FLAC__StreamDecoder),
+        FLAC__StreamDecoderErrorStatus,
+        c_void_p
+    )
 
 
     libflac.FLAC__stream_decoder_new.restype = POINTER(FLAC__StreamDecoder)
