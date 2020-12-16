@@ -1,6 +1,7 @@
 import pytest
 import pyogg
 
+
 def test_error_in_filename():
     # Load a non-existant file
     filename = "does-not-exist.flac"
@@ -10,7 +11,7 @@ def test_error_in_filename():
 
 def test_as_array():
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.flac"
+    filename = str(pytest.pyogg.rootdir / "examples/left-right-demo-5s.flac")
     flac_file = pyogg.FlacFile(filename)
 
     # Test that the loaded file is indeed 5 seconds long (using
@@ -27,7 +28,7 @@ def test_as_array():
     
 def test_as_bytes():
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.flac"
+    filename = str(pytest.pyogg.rootdir / "examples/left-right-demo-5s.flac")
     flac_file = pyogg.FlacFile(filename)
 
     # Test that the loaded file is indeed 5 seconds long (using
@@ -48,12 +49,16 @@ def test_as_bytes():
 
 def test_output_via_wav():
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.flac"
+    filename = str(pytest.pyogg.rootdir / "examples/left-right-demo-5s.flac")
     flac_file = pyogg.FlacFile(filename)
 
     import wave
+    out_filename = str(
+        pytest.pyogg.outdir
+        / "test_flac_file__test_output_via_wav.wav"
+    )
     wave_out = wave.open(
-        "test_flac_file__test_output_via_wav.wav",
+        out_filename,
         "wb"
     )
     wave_out.setnchannels(flac_file.channels)
