@@ -13,16 +13,12 @@ class Config:
 _config = Config()
 
 
-# FIXME: Mypy: what is the correct type for 'config'?
+# FIXME: Mypy: What is the correct type for 'config'?  It is of type
+# _pytest.config.Config (see
+# https://docs.pytest.org/en/stable/_modules/_pytest/hookspec.html#pytest_configure)
+# but this isn't part of the public API.  Using 'Any' as a
+# placeholder.
 def pytest_configure(config: Any) -> None:
-
-    print("*********")
-    print("*********")
-    print("*********")
-    print("*********")
-    print("*********")
-    print(type(config))
-    
     # Create an object to store the directories
     
     _config.rootdir = config.rootdir
