@@ -2,11 +2,14 @@ import pytest
 import pyogg
 import os
 
-os.chdir(os.path.dirname(__file__))
+from config import Config
 
-def test_zero_length_audio() -> None:
+def test_zero_length_audio(pyogg_config: Config) -> None:
     # Save the audio using OggOpusWriter
-    filename = "test_ogg_opus_writer__test_zero_length_audio.opus"
+    filename = str(
+        pyogg_config.outdir
+        / "test_ogg_opus_writer__test_zero_length_audio.opus"
+    )
     encoder = pyogg.OpusBufferedEncoder()
     encoder.set_application("audio")
     encoder.set_sampling_frequency(48000)
@@ -27,9 +30,12 @@ def test_zero_length_audio() -> None:
     assert len(opus_file.buffer) == 0
    
    
-def test_one_frame_audio() -> None:
+def test_one_frame_audio(pyogg_config: Config) -> None:
     # Save the audio using OggOpusWriter
-    filename = "test_ogg_opus_writer__test_one_frame_audio.opus"
+    filename = str(
+        pyogg_config.outdir
+        / "test_ogg_opus_writer__test_one_frame_audio.opus"
+    )
     encoder = pyogg.OpusBufferedEncoder()
     encoder.set_application("audio")
     samples_per_second = 48000
@@ -57,12 +63,15 @@ def test_one_frame_audio() -> None:
     assert len(bytes(opus_file.buffer)) == bytes_per_sample * frame_size_samples
     
 
-def test_n_frames_audio() -> None:
+def test_n_frames_audio(pyogg_config: Config) -> None:
     # Number of frames to write
     n = 2
     
     # Save the audio using OggOpusWriter
-    filename = f"test_ogg_opus_writer__test_{n}_frames_audio.opus"
+    filename = str(
+        pyogg_config.outdir
+        / f"test_ogg_opus_writer__test_{n}_frames_audio.opus"
+    )
     encoder = pyogg.OpusBufferedEncoder()
     encoder.set_application("audio")
     samples_per_second = 48000
@@ -88,13 +97,19 @@ def test_n_frames_audio() -> None:
     assert len(bytes(opus_file.buffer)) == bytes_per_sample * frame_size_samples * n
     
     
-def test_duplicate_audio() -> None:
+def test_duplicate_audio(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.opus"
+    filename = str(
+        pyogg_config.rootdir
+        / "examples/left-right-demo-5s.opus"
+    )
     opus_file = pyogg.OpusFile(filename)
     
     # Save the audio using OggOpusWriter
-    out_filename = "test_ogg_opus_writer__test_duplicate_audio.opus"
+    out_filename = str(
+        pyogg_config.outdir
+        / "test_ogg_opus_writer__test_duplicate_audio.opus"
+    )
     encoder = pyogg.OpusBufferedEncoder()
     encoder.set_application("audio")
     encoder.set_sampling_frequency(48000)
@@ -105,13 +120,19 @@ def test_duplicate_audio() -> None:
     writer.write(memoryview(opus_file.buffer))
 
     
-def test_already_loaded_file() -> None:
+def test_already_loaded_file(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.opus"
+    filename = str(
+        pyogg_config.rootdir
+        / "examples/left-right-demo-5s.opus"
+    )
     opus_file = pyogg.OpusFile(filename)
 
     # Save the audio using OggOpusWriter
-    out_filename = "test_ogg_opus_writer__test_already_loaded_file.opus"
+    out_filename = str(
+        pyogg_config.outdir
+        / "test_ogg_opus_writer__test_already_loaded_file.opus"
+    )
     f = open(out_filename, "wb")
     encoder = pyogg.OpusBufferedEncoder()
     encoder.set_application("audio")
@@ -126,9 +147,12 @@ def test_already_loaded_file() -> None:
     f.close()
 
 
-def test_custom_pre_skip() -> None:
+def test_custom_pre_skip(pyogg_config: Config) -> None:
     # Save the audio using OggOpusWriter
-    filename = "test_ogg_opus_writer__test_zero_length_audio.opus"
+    filename = str(
+        pyogg_config.outdir
+        / "test_ogg_opus_writer__test_custom_pre_skip.opus"
+    )
     samples_of_pre_skip = 500
     encoder = pyogg.OpusBufferedEncoder()
     encoder.set_application("audio")

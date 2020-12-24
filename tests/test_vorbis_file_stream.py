@@ -2,7 +2,7 @@ import pytest
 import pyogg
 import os
 
-os.chdir(os.path.dirname(__file__))
+from config import Config
 
 def test_error_in_filename():
     # Load a non-existant file
@@ -11,9 +11,12 @@ def test_error_in_filename():
         vorbis_stream = pyogg.VorbisFileStream(filename)
 
         
-def test_total_length():
+def test_total_length(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.ogg"
+    filename = str(
+        pyogg_config.rootdir
+        / "examples/left-right-demo-5s.ogg"
+    )
     
     # Open the file using VorbisFileStream, which does not read the entire
     # file immediately.
@@ -42,9 +45,12 @@ def test_total_length():
     assert duration_samples == expected_duration_samples
 
 
-def test_same_data_as_vorbis_file():
+def test_same_data_as_vorbis_file(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.ogg"
+    filename = str(
+        pyogg_config.rootdir
+        / "examples/left-right-demo-5s.ogg"
+    )
 
     # Open the file using VorbisFile to read the entire file into memory
     vorbis_file = pyogg.VorbisFile(filename)
@@ -71,11 +77,14 @@ def test_same_data_as_vorbis_file():
     assert buf_all == bytes(vorbis_file.buffer)
     
     
-def test_same_data_as_vorbis_file_using_as_array():
+def test_same_data_as_vorbis_file_using_as_array(pyogg_config: Config):
     import numpy # type: ignore
     
     # Load the demonstration file that is exactly 5 seconds long
-    filename = "../examples/left-right-demo-5s.ogg"
+    filename = str(
+        pyogg_config.rootdir
+        / "examples/left-right-demo-5s.ogg"
+    )
 
     # Open the file using VorbisFile to read the entire file into memory
     vorbis_file = pyogg.VorbisFile(filename)
