@@ -5,7 +5,7 @@ import os
 def test_zero_length_audio(pyogg_config: "Config") -> None:
     # Save the audio using OggOpusWriter
     filename = str(
-        pyogg_config.rootdir
+        pyogg_config.outdir
         / "test_ogg_opus_writer__test_zero_length_audio.opus"
     )
     encoder = pyogg.OpusBufferedEncoder()
@@ -31,7 +31,7 @@ def test_zero_length_audio(pyogg_config: "Config") -> None:
 def test_one_frame_audio(pyogg_config: "Config") -> None:
     # Save the audio using OggOpusWriter
     filename = str(
-        pyogg_config.rootdir
+        pyogg_config.outdir
         / "test_ogg_opus_writer__test_one_frame_audio.opus"
     )
     encoder = pyogg.OpusBufferedEncoder()
@@ -67,7 +67,7 @@ def test_n_frames_audio(pyogg_config: "Config") -> None:
     
     # Save the audio using OggOpusWriter
     filename = str(
-        pyogg_config.rootdir
+        pyogg_config.outdir
         / f"test_ogg_opus_writer__test_{n}_frames_audio.opus"
     )
     encoder = pyogg.OpusBufferedEncoder()
@@ -148,8 +148,8 @@ def test_already_loaded_file(pyogg_config: "Config") -> None:
 def test_custom_pre_skip(pyogg_config: "Config") -> None:
     # Save the audio using OggOpusWriter
     filename = str(
-        pyogg_config.rootdir
-        / "test_ogg_opus_writer__test_zero_length_audio.opus"
+        pyogg_config.outdir
+        / "test_ogg_opus_writer__test_custom_pre_skip.opus"
     )
     samples_of_pre_skip = 500
     encoder = pyogg.OpusBufferedEncoder()
