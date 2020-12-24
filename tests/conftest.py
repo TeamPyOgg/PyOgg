@@ -1,18 +1,32 @@
+import pathlib
 import shutil
+from typing import Any
 
 import pytest
 
-def pytest_configure(config):
-    # Create an object to store the directories
-    class Object:
-        pass
-    
-    pyogg = Object()
-    pyogg.rootdir = config.rootdir
-    pyogg.outdir = config.rootdir / "tests/out"
 
-    # Store the object in the pytest module
-    pytest.pyogg = pyogg
+class Config:
+    def __init__(self):
+        self.rootdir: pathlib.Path
+        self.outdir: pathlib.Path
+        
+_config = Config()
+
+
+# FIXME: Mypy: what is the correct type for 'config'?
+def pytest_configure(config: Any) -> None:
+
+    print("*********")
+    print("*********")
+    print("*********")
+    print("*********")
+    print("*********")
+    print(type(config))
+    
+    # Create an object to store the directories
+    
+    _config.rootdir = config.rootdir
+    _config.outdir = config.rootdir / "tests/out"
 
     # If the previous output directory exists, delete it
     out_previous = config.rootdir / "tests/out_previous"
@@ -27,10 +41,13 @@ def pytest_configure(config):
             )
     
     # If the output directory already exists, rename it
-    if pyogg.outdir.exists():
-        pyogg.outdir.rename(config.rootdir / "tests/out_previous")
+    if _config.outdir.exists():
+        _config.outdir.rename(config.rootdir / "tests/out_previous")
 
     # Create the output directory
-    pyogg.outdir.mkdir()
+    _config.outdir.mkdir()
     
     
+@pytest.fixture(scope="session")
+def pyogg_config() -> Config:
+    return _config

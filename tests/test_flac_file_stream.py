@@ -1,17 +1,17 @@
 import pytest
 import pyogg
 
-def test_error_in_filename():
+def test_error_in_filename() -> None:
     # Load a non-existant file
     filename = "does-not-exist.flac"
     with pytest.raises(pyogg.PyOggError):
         flac_stream = pyogg.FlacFileStream(filename)
 
         
-def test_total_length():
+def test_total_length(pyogg_config: "Config") -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
-        pytest.pyogg.rootdir
+        pyogg_config.rootdir
         / "examples/left-right-demo-5s.flac"
     )
     
@@ -42,10 +42,10 @@ def test_total_length():
     assert duration_samples == expected_duration_samples
 
 
-def test_same_data_as_flac_file():
+def test_same_data_as_flac_file(pyogg_config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
-        pytest.pyogg.rootdir
+        pyogg_config.rootdir
         / "examples/left-right-demo-5s.flac"
     )
     
@@ -74,12 +74,12 @@ def test_same_data_as_flac_file():
     assert buf_all == bytes(flac_file.buffer)
     
     
-def test_same_data_as_flac_file_using_as_array():
+def test_same_data_as_flac_file_using_as_array(pyogg_config):
     import numpy # type: ignore
     
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
-        pytest.pyogg.rootdir
+        pyogg_config.rootdir
         / "examples/left-right-demo-5s.flac"
     )
     
