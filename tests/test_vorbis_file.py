@@ -11,7 +11,7 @@ def test_error_in_filename():
         vorbis_file = pyogg.VorbisFile(filename)
     
 
-def test_as_array(pyogg_config: "Config"):
+def test_as_array(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -31,7 +31,7 @@ def test_as_array(pyogg_config: "Config"):
     assert duration_samples == expected_duration_samples
 
     
-def test_as_bytes(pyogg_config: "Config"):
+def test_as_bytes(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -55,7 +55,7 @@ def test_as_bytes(pyogg_config: "Config"):
     assert duration_bytes == expected_duration_bytes
 
 
-def test_as_bytes_one_byte_per_sample(pyogg_config: "Config"):
+def test_as_bytes_one_byte_per_sample(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -79,7 +79,7 @@ def test_as_bytes_one_byte_per_sample(pyogg_config: "Config"):
     assert duration_bytes == expected_duration_bytes
 
 
-def test_bytes_per_sample(pyogg_config: "Config"):
+def test_bytes_per_sample(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -92,7 +92,7 @@ def test_bytes_per_sample(pyogg_config: "Config"):
     assert len(vorbis_file_2.buffer) == len(vorbis_file_1.buffer)*2
     
 
-def test_output_via_wav(pyogg_config: "Config"):
+def test_output_via_wav(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -115,7 +115,7 @@ def test_output_via_wav(pyogg_config: "Config"):
     wave_out.writeframes(vorbis_file.buffer)
 
 
-def test_output_via_wav_one_byte_per_sample(pyogg_config: "Config"):
+def test_output_via_wav_one_byte_per_sample(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir

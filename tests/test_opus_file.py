@@ -13,14 +13,14 @@ def test_error_in_filename() -> None:
     
 # FIXME: This shouldn't be a source of error, but it currently is.
 # This works in macOS and probably Linux, but not Windows.
-# def test_unicode_filename(pyogg_config: "Config"):
+# def test_unicode_filename(pyogg_config: Config):
 #     filename = str(
 #         pyogg_config.rootdir
 #         / "examples/unicode filename 🎵.opus"
 #     )
 #     opus_file = pyogg.OpusFile(filename)
         
-def test_as_array(pyogg_config: "Config") -> None:
+def test_as_array(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -41,7 +41,7 @@ def test_as_array(pyogg_config: "Config") -> None:
     assert duration_samples == expected_duration_samples
 
     
-def test_as_bytes(pyogg_config: "Config") -> None:
+def test_as_bytes(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -65,7 +65,7 @@ def test_as_bytes(pyogg_config: "Config") -> None:
     assert duration_bytes == expected_duration_bytes
 
 
-def test_output_via_wav(pyogg_config: "Config") -> None:
+def test_output_via_wav(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir

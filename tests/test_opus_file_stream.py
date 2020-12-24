@@ -11,7 +11,7 @@ def test_error_in_filename():
         opus_stream = pyogg.OpusFileStream(filename)
 
         
-def test_total_length(pyogg_config: "Config"):
+def test_total_length(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -45,7 +45,7 @@ def test_total_length(pyogg_config: "Config"):
     assert duration_samples == expected_duration_samples
 
 
-def test_same_data_as_opus_file(pyogg_config: "Config"):
+def test_same_data_as_opus_file(pyogg_config: Config):
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -77,7 +77,7 @@ def test_same_data_as_opus_file(pyogg_config: "Config"):
     assert buf_all == bytes(opus_file.buffer)
     
     
-def test_same_data_as_opus_file_using_as_array(pyogg_config: "Config"):
+def test_same_data_as_opus_file_using_as_array(pyogg_config: Config):
     import numpy # type: ignore
     
     # Load the demonstration file that is exactly 5 seconds long

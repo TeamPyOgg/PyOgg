@@ -4,7 +4,7 @@ import os
 
 from config import Config
 
-def test_zero_length_audio(pyogg_config: "Config") -> None:
+def test_zero_length_audio(pyogg_config: Config) -> None:
     # Save the audio using OggOpusWriter
     filename = str(
         pyogg_config.outdir
@@ -30,7 +30,7 @@ def test_zero_length_audio(pyogg_config: "Config") -> None:
     assert len(opus_file.buffer) == 0
    
    
-def test_one_frame_audio(pyogg_config: "Config") -> None:
+def test_one_frame_audio(pyogg_config: Config) -> None:
     # Save the audio using OggOpusWriter
     filename = str(
         pyogg_config.outdir
@@ -63,7 +63,7 @@ def test_one_frame_audio(pyogg_config: "Config") -> None:
     assert len(bytes(opus_file.buffer)) == bytes_per_sample * frame_size_samples
     
 
-def test_n_frames_audio(pyogg_config: "Config") -> None:
+def test_n_frames_audio(pyogg_config: Config) -> None:
     # Number of frames to write
     n = 2
     
@@ -97,7 +97,7 @@ def test_n_frames_audio(pyogg_config: "Config") -> None:
     assert len(bytes(opus_file.buffer)) == bytes_per_sample * frame_size_samples * n
     
     
-def test_duplicate_audio(pyogg_config: "Config") -> None:
+def test_duplicate_audio(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -120,7 +120,7 @@ def test_duplicate_audio(pyogg_config: "Config") -> None:
     writer.write(memoryview(opus_file.buffer))
 
     
-def test_already_loaded_file(pyogg_config: "Config") -> None:
+def test_already_loaded_file(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
@@ -147,7 +147,7 @@ def test_already_loaded_file(pyogg_config: "Config") -> None:
     f.close()
 
 
-def test_custom_pre_skip(pyogg_config: "Config") -> None:
+def test_custom_pre_skip(pyogg_config: Config) -> None:
     # Save the audio using OggOpusWriter
     filename = str(
         pyogg_config.outdir

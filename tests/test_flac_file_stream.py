@@ -10,7 +10,7 @@ def test_error_in_filename() -> None:
         flac_stream = pyogg.FlacFileStream(filename)
 
         
-def test_total_length(pyogg_config: "Config") -> None:
+def test_total_length(pyogg_config: Config) -> None:
     # Load the demonstration file that is exactly 5 seconds long
     filename = str(
         pyogg_config.rootdir
