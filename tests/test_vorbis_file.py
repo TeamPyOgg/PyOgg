@@ -2,6 +2,8 @@ import pytest
 import pyogg
 import os
 
+from config import Config
+
 def test_error_in_filename():
     # Load a non-existant file
     filename = "does-not-exist.ogg"

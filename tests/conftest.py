@@ -1,14 +1,10 @@
-import pathlib
 import shutil
 from typing import Any
 
 import pytest
 
+from config import Config
 
-class Config:
-    def __init__(self):
-        self.rootdir: pathlib.Path
-        self.outdir: pathlib.Path
         
 _config = Config()
 

@@ -2,6 +2,8 @@ import pytest
 import pyogg
 import os
 
+from config import Config
+
 
 def test_error_in_filename() -> None:
     # Load a non-existant file

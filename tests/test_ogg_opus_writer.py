@@ -2,6 +2,8 @@ import pytest
 import pyogg
 import os
 
+from config import Config
+
 def test_zero_length_audio(pyogg_config: "Config") -> None:
     # Save the audio using OggOpusWriter
     filename = str(

@@ -1,6 +1,8 @@
 import pytest
 import pyogg
 
+from config import Config
+
 def test_error_in_filename() -> None:
     # Load a non-existant file
     filename = "does-not-exist.flac"
