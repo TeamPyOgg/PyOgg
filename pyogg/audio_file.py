@@ -18,13 +18,14 @@ class AudioFile:
         #: Number of channels in audio file.
         self.channels: int
 
-        #: Raw bytes of audio data.  Channels are interleaved.
+        #: Raw bytes of audio data.  Channels are interleaved.  Words
+        #: size of samples is given by `bits_per_sample`.
         self.buffer: ctypes.Array
 
-        #: Bytes per sample.  For example, CD-quality audio has 16-bit
+        #: Bits per sample.  For example, CD-quality audio has 16-bit
         #: samples (2 bytes per sample).  Floating-point
         #: representations are not supported.
-        self.bytes_per_sample: int
+        self.bits_per_sample: int
 
         #: Signedness of the samples.  True if the samples are signed
         #: integers, False if they are unsigned.
