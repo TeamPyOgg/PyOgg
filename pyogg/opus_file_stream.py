@@ -59,8 +59,8 @@ class OpusFileStream:
         Returns None when all data has been read.
 
         The array that is returned should be either processed or
-        copied before the next call to get_buffer() or
-        get_buffer_as_array() as the array's memory is reused for
+        copied before the next call to :meth:`~get_buffer` or
+        :meth:`~get_buffer_as_array` as the array's memory is reused for
         each call.
 
         """
@@ -100,7 +100,7 @@ class OpusFileStream:
 
         Does not copy the underlying data, so the returned array
         should either be processed or copied before the next call
-        to get_buffer() or get_buffer_as_array().
+        to :meth:`~get_buffer` or :meth:`~get_buffer_as_array`.
 
         """
         import numpy # type: ignore
