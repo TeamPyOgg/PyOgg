@@ -1,4 +1,5 @@
 import ctypes
+from typing import Union
 
 from . import ogg
 from . import opus
@@ -6,20 +7,23 @@ from .pyogg_error import PyOggError
 from .audio_file import AudioFile
 
 class OpusFile(AudioFile):
-    def __init__(self, path: str) -> None:
-        # Open the file
+    def __init__(self, path_or_data: Union[str, memoryview]):
         error = ctypes.c_int()
-        of = opus.op_open_file(
-            ogg.to_char_p(path),
-            ctypes.pointer(error)
-        )
-
-        # Check for errors 
-        if error.value != 0:
-            raise PyOggError(
-                ("File '{}' couldn't be opened or doesn't exist. "+
-                 "Error code: {}").format(path, error.value)
-            )
+        if isinstance(path_or_data, str):
+            # Open the file
+            of = opus.op_open_file(ogg.to_char_p(path_or_data), ctypes.pointer(error))
+            # Check for errors 
+            if error.value != 0:
+                raise PyOggError(
+                    ("File '{}' couldn't be opened or doesn't exist. "+
+                    "Error code: {}").format(path_or_data, error.value)
+                )
+        else:
+            # Open from memory
+            data = ctypes.cast(path_or_data, ctypes.POINTER(ctypes.c_ubyte))
+            of = opus.op_open_memory(data, len(path_or_data), ctypes.pointer(error))
+            if error.value != 0:
+                raise PyOggError("Could not open from memory. Error code: {}".format(error.value))
 
         # Extract the number of channels in the newly opened file
         #: Number of channels in audio file.

@@ -1,27 +1,38 @@
 import ctypes
+from typing import Union
 
 from . import ogg
 from . import opus
 from .pyogg_error import PyOggError
 
 class OpusFileStream:
-    def __init__(self, path):
+    def __init__(self, path_or_data: Union[str, memoryview]):
         """Opens an OggOpus file as a stream.
 
-        path should be a string giving the filename of the file to
-        open.  Unicode file names may not work correctly.
+        path_or_data should be a string giving the filename of the file to
+        open, or a buffer containing the OggOpus data. Unicode file names may
+        not work correctly.
 
         An exception will be raised if the file cannot be opened
         correctly.
-
-        """ 
+        """
         error = ctypes.c_int()
-
-        self.of = opus.op_open_file(ogg.to_char_p(path), ctypes.pointer(error))
-
-        if error.value != 0:
-            self.of = None
-            raise PyOggError("file couldn't be opened or doesn't exist. Error code : {}".format(error.value))
+        if isinstance(path_or_data, str):
+            # Open the file
+            self.of = opus.op_open_file(ogg.to_char_p(path_or_data), ctypes.pointer(error))
+            # Check for errors 
+            if error.value != 0:
+                raise PyOggError(
+                    ("File '{}' couldn't be opened or doesn't exist. "+
+                    "Error code: {}").format(path_or_data, error.value)
+                )
+        else:
+            # Open from memory
+            self._data = path_or_data  # Keep a reference around to prevent garbage collection.
+            data = ctypes.cast(self._data, ctypes.POINTER(ctypes.c_ubyte))
+            self.of = opus.op_open_memory(data, len(self._data), ctypes.pointer(error))
+            if error.value != 0:
+                raise PyOggError("Could not open from memory. Error code: {}".format(error.value))
 
         #: Number of channels in audio file
         self.channels = opus.op_channel_count(self.of, -1)
