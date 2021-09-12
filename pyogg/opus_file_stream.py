@@ -6,7 +6,7 @@ from . import opus
 from .pyogg_error import PyOggError
 
 class OpusFileStream:
-    def __init__(self, path_or_data: Union[str, memoryview]):
+    def __init__(self, path_or_data: Union[str, bytes]):
         """Opens an OggOpus file as a stream.
 
         path_or_data should be a string giving the filename of the file to
@@ -27,9 +27,9 @@ class OpusFileStream:
                     "Error code: {}").format(path_or_data, error.value)
                 )
         else:
-            # Open from memory
+            # Open from memory; avoid creating an unnecessary copy, since op_open_memory does not mutate data.
             self._data = path_or_data  # Keep a reference around to prevent garbage collection.
-            data = ctypes.cast(self._data, ctypes.POINTER(ctypes.c_ubyte))
+            data = ctypes.cast(ctypes.c_char_p(path_or_data), ctypes.POINTER(ctypes.c_ubyte))
             self.of = opus.op_open_memory(data, len(self._data), ctypes.pointer(error))
             if error.value != 0:
                 raise PyOggError("Could not open from memory. Error code: {}".format(error.value))

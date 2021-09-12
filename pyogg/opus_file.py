@@ -7,7 +7,7 @@ from .pyogg_error import PyOggError
 from .audio_file import AudioFile
 
 class OpusFile(AudioFile):
-    def __init__(self, path_or_data: Union[str, memoryview]):
+    def __init__(self, path_or_data: Union[str, bytes]):
         error = ctypes.c_int()
         if isinstance(path_or_data, str):
             # Open the file
@@ -19,8 +19,8 @@ class OpusFile(AudioFile):
                     "Error code: {}").format(path_or_data, error.value)
                 )
         else:
-            # Open from memory
-            data = ctypes.cast(path_or_data, ctypes.POINTER(ctypes.c_ubyte))
+            # Open from memory; avoid creating an unnecessary copy, since op_open_memory does not mutate data.
+            data = ctypes.cast(ctypes.c_char_p(path_or_data), ctypes.POINTER(ctypes.c_ubyte))
             of = opus.op_open_memory(data, len(path_or_data), ctypes.pointer(error))
             if error.value != 0:
                 raise PyOggError("Could not open from memory. Error code: {}".format(error.value))
