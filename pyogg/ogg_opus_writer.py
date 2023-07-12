@@ -284,8 +284,11 @@ class OggOpusWriter():
                     break
 
         # Create the identification header
+        samples_per_second = self._encoder._samples_per_second
+        input_sampling_rate = samples_per_second if samples_per_second else 0
         id_header = self._make_identification_header(
-            pre_skip = pre_skip
+            pre_skip = pre_skip,
+            input_sampling_rate = input_sampling_rate
         )
 
         # Specify the packet containing the identification header
