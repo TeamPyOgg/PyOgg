@@ -1,3 +1,5 @@
+import inspect
+
 import builtins
 import copy
 import ctypes
@@ -103,11 +105,8 @@ class OggOpusWrapper():
         return stream_bytes
 
 
-    def write(self, pcm: memoryview) -> None:
-        """Encode the PCM and write out the Ogg Opus stream.
-
-        Encoders the PCM using the provided encoder.
-
+    def write(self, opus_packet: memoryview) -> None:
+        """Write the encoded Opus packet out the Ogg Opus stream.
         """
         # Check that the stream hasn't already been finished
         if self._finished:
@@ -120,11 +119,11 @@ class OggOpusWrapper():
         # encoder.
         if not self._headers_written:
             pre_skip = self._write_headers(self._custom_pre_skip)
-            if self._custom_pre_skip is None:
+            if pre_skip > 0:
                 self._write_silence(pre_skip)
 
         # Call the internal method to encode the bytes
-        self._write_to_oggopus(pcm)
+        self._write_to_oggopus(opus_packet)
 
 
     def _write_to_oggopus(self, encoded_packet: memoryview) -> None:
@@ -286,13 +285,20 @@ class OggOpusWrapper():
         signature = b"OpusTags"
         vendor_string = b"ENCODER=PyOgg"
         vendor_string_length = struct.pack("<I",len(vendor_string))
-        user_comments_length = struct.pack("<I",0)
+        user_comments = (
+            b"title=Session streamed with rtsp_to_pipe",
+        )
+        user_comments_list_length = struct.pack("<I",len(user_comments))
+        user_comments_with_lengths = b"".join(
+            struct.pack("<I",len(uc)) + uc for uc in user_comments
+        )
 
         return (
             signature
             + vendor_string_length
             + vendor_string
-            + user_comments_length
+            + user_comments_list_length
+            + user_comments_with_lengths
         )
 
     def _write_comment_header_packet(self):
@@ -359,6 +365,9 @@ class OggOpusWrapper():
         return pre_skip
 
     def _write_packet(self):
+        current_frame = inspect.currentframe()
+        call_frames = inspect.getouterframes(current_frame, 2)
+        parent_funcs = [cf[3] for cf in call_frames]
         # Place the packet into the stream
         result = ogg.ogg_stream_packetin(
             self._stream_state,
