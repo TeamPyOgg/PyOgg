@@ -3,6 +3,7 @@ import copy
 import ctypes
 import random
 import struct
+from collections import deque
 from io import BytesIO
 from typing import (
     Optional,
@@ -20,6 +21,8 @@ class OggOpusWrapper():
     """Encodes PCM data into an OggOpus file."""
 
     def __init__(self,
+                 channels: int = 2,
+                 sampling_freq: int = 48000,
                  custom_pre_skip: Optional[int] = None) -> None:
         """Construct an OggOpusWrapper.
 
@@ -65,7 +68,8 @@ class OggOpusWrapper():
         # packets
         self._count_samples = 0
     
-        self._channels = 2
+        self._channels = channels
+        self._sampling_freq = sampling_freq
 
         # Flag to indicate if the headers have been written
         self._headers_written = False
@@ -77,21 +81,27 @@ class OggOpusWrapper():
         # Reference to the current encoded packet (written only
         # when we know if it the last)
         self._current_encoded_packet: Optional[bytes] = None
-        self._file = BytesIO()
-
-    def __del__(self) -> None:
-        if not self._finished:
-            self.close()
+        self._pages = []
 
     def set_channels(self, channels: int):
         self._channels = channels
+
+    def set_sampling_freq(self, samples_per_second: int) -> None:
+        self._sampling_freq = samples_per_second
 
     #
     # User visible methods
     #
 
-    def read(self, n_bytes: Optional[int] = None) -> bytes:
-        return self._file.read(n_bytes)
+    def read(self, n_pages: Optional[int] = None) -> bytes:
+        if n_pages is None:
+            n_pages = len(self._pages)
+        else:
+            n_pages = min(n_pages, len(self._pages))
+        stream_bytes = b"".join(bytes(p) for p in self._pages[:n_pages])
+        self._pages = self._pages[n_pages:]
+        return stream_bytes
+
 
     def write(self, pcm: memoryview) -> None:
         """Encode the PCM and write out the Ogg Opus stream.
@@ -123,7 +133,7 @@ class OggOpusWrapper():
         encoded_packet_ctypes = Buffer.from_buffer(encoded_packet)
 
         # Obtain a pointer to the encoded packet
-        encoded_packet_ptr = ctypes.cast( 
+        encoded_packet_ptr = ctypes.cast(
             encoded_packet_ctypes,
             ctypes.POINTER(ctypes.c_ubyte)
         )
@@ -170,11 +180,6 @@ class OggOpusWrapper():
 
         # Mark the stream as finished
         self._finished = True
-
-        # Close the file if we opened it
-        if self._i_opened_the_file:
-            self._file.close()
-            self._i_opened_the_file = False
 
         # Clean up the Ogg-related memory
         ogg.ogg_stream_clear(self._stream_state)
@@ -239,36 +244,14 @@ class OggOpusWrapper():
 
         return signature+data
 
-    def _write_identification_header_packet(self, custom_pre_skip: int) -> int:
+    def _write_identification_header_packet(self, custom_pre_skip: Optional[int] = None) -> int:
         """ Returns pre-skip. """
-        if custom_pre_skip is not None:
-            # Use the user-specified amount of pre-skip
-            pre_skip = custom_pre_skip
-        else:
-            # Obtain the algorithmic delay of the Opus encoder.  See
-            # https://tools.ietf.org/html/rfc7845#page-27
-            delay_samples = self._encoder.get_algorithmic_delay()
-
-            # Extra samples are recommended.  See
-            # https://tools.ietf.org/html/rfc7845#page-27
-            extra_samples = 120
-
-            # We will just fill a whole frame with silence.  Calculate
-            # the minimum frame length, which we'll use as the
-            # pre-skip.
-            frame_durations = [2.5, 5, 10, 20, 40, 60] # milliseconds
-            frame_lengths = [
-                x * self._encoder._samples_per_second // 1000
-                for x in frame_durations
-            ]
-            for frame_length in frame_lengths:
-                if frame_length > delay_samples + extra_samples:
-                    pre_skip = frame_length
-                    break
+        pre_skip = custom_pre_skip or 0
 
         # Create the identification header
         id_header = self._make_identification_header(
-            pre_skip = pre_skip
+            pre_skip = pre_skip,
+            input_sampling_rate = self._sampling_freq
         )
 
         # Specify the packet containing the identification header
@@ -317,7 +300,7 @@ class OggOpusWrapper():
         comment_header = self._make_comment_header()
 
         # Specify the packet containing the identification header
-        self._ogg_packet.packet = ctypes.cast(comment_header, ogg.c_uchar_p)
+        self._ogg_packet.packet = ctypes.cast(comment_header, ogg.c_uchar_p)  #type: ignore
         self._ogg_packet.bytes = len(comment_header)
         self._ogg_packet.b_o_s = 0
         self._ogg_packet.e_o_s = 0
@@ -342,11 +325,13 @@ class OggOpusWrapper():
         # write without issues.
         HeaderBufferPtr = ctypes.POINTER(ctypes.c_ubyte * self._ogg_page.header_len)
         header = HeaderBufferPtr(self._ogg_page.header.contents)[0]
-        self._file.write(header)
+        # Copy memory since not writing to a file
+        self._pages.append(bytes((header[i] for i in range(self._ogg_page.header_len))))
 
         BodyBufferPtr = ctypes.POINTER(ctypes.c_ubyte * self._ogg_page.body_len)
         body = BodyBufferPtr(self._ogg_page.body.contents)[0]
-        self._file.write(body)
+        # Copy memory since not writing to a file
+        self._pages.append(bytes((body[i] for i in range(self._ogg_page.body_len))))
 
     def _flush(self):
         """ Flush all pages to the file. """
