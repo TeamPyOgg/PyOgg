@@ -53,8 +53,11 @@ class OggOpusWrapper():
         # Store the custom pre skip
         self._custom_pre_skip = custom_pre_skip
 
-        # Create a new stream state with a random serial number
-        self._stream_state = self._create_stream_state()
+        # Create a random serial number
+        self._serial_no = self._create_random_serial_no()
+
+        # Create a new stream state with specified serial number
+        self._stream_state = self._create_stream_state(self._serial_no)
 
         # Create a packet (reused for each pass)
         self._ogg_packet = ogg.ogg_packet()
@@ -143,7 +146,7 @@ class OggOpusWrapper():
         # Place data into the packet
         self._ogg_packet.packet = encoded_packet_ptr
         self._ogg_packet.bytes = len(encoded_packet)
-        self._ogg_packet.b_o_s = int(not self._headers_written)
+        self._ogg_packet.b_o_s = 0
         self._ogg_packet.e_o_s = int(self._finished)
         self._ogg_packet.granulepos = self._count_samples
         self._ogg_packet.packetno = self._count_packets
@@ -187,6 +190,12 @@ class OggOpusWrapper():
         # now have been written)
         del self._current_encoded_packet
 
+    def reset_stream_state(self):
+        # Create a new stream state with a random serial number
+        self._stream_state = self._create_stream_state(self._serial_no)
+        self._count_packets = 0
+        self._count_samples = 0
+
     #
     # Internal methods
     #
@@ -199,10 +208,7 @@ class OggOpusWrapper():
 
         return serial_no
 
-    def _create_stream_state(self) -> ogg.ogg_stream_state:
-        # Create a random serial number
-        serial_no = self._create_random_serial_no()
-
+    def _create_stream_state(self, serial_no: ctypes.c_int) -> ogg.ogg_stream_state:
         # Create an ogg_stream_state
         ogg_stream_state = ogg.ogg_stream_state()
 
@@ -344,18 +350,24 @@ class OggOpusWrapper():
         while ogg.ogg_stream_flush(
                 ctypes.pointer(self._stream_state),
                 ctypes.pointer(self._ogg_page)) != 0:
+            print(f"Flushing packet, BOS {self._ogg_packet.b_o_s}")
             self._write_page()
 
     def _write_headers(self, custom_pre_skip):
         """ Write the two Opus header packets."""
+        print("Writing ID header packet")
         pre_skip = self._write_identification_header_packet(
             custom_pre_skip
         )
+        self._flush()
+
+        print("Writing comment header packet")
         self._write_comment_header_packet()
 
         # Store that the headers have been written
         self._headers_written = True
 
+        print("Flusing header packets")
         # Write out pages to file to ensure that the headers are
         # the only packets to appear on the first page.  If this
         # is not done, the file cannot be read by the library
