@@ -350,24 +350,24 @@ class OggOpusWrapper():
         while ogg.ogg_stream_flush(
                 ctypes.pointer(self._stream_state),
                 ctypes.pointer(self._ogg_page)) != 0:
-            print(f"Flushing packet, BOS {self._ogg_packet.b_o_s}")
+            # print(f"Flushing packet, BOS {self._ogg_packet.b_o_s}")
             self._write_page()
 
     def _write_headers(self, custom_pre_skip):
         """ Write the two Opus header packets."""
-        print("Writing ID header packet")
+        # print("Writing ID header packet")
         pre_skip = self._write_identification_header_packet(
             custom_pre_skip
         )
         self._flush()
 
-        print("Writing comment header packet")
+        # print("Writing comment header packet")
         self._write_comment_header_packet()
 
         # Store that the headers have been written
         self._headers_written = True
 
-        print("Flusing header packets")
+        # print("Flusing header packets")
         # Write out pages to file to ensure that the headers are
         # the only packets to appear on the first page.  If this
         # is not done, the file cannot be read by the library
@@ -377,9 +377,6 @@ class OggOpusWrapper():
         return pre_skip
 
     def _write_packet(self):
-        current_frame = inspect.currentframe()
-        call_frames = inspect.getouterframes(current_frame, 2)
-        parent_funcs = [cf[3] for cf in call_frames]
         # Place the packet into the stream
         result = ogg.ogg_stream_packetin(
             self._stream_state,
