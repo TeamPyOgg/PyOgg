@@ -57,7 +57,6 @@ class OggOpusWriter():
 
         # Create a packet (reused for each pass)
         self._ogg_packet = ogg.ogg_packet()
-        self._packet_valid = False
 
         # Create a page (reused for each pass)
         self._ogg_page = ogg.ogg_page()
@@ -173,14 +172,6 @@ class OggOpusWriter():
 
         # Flush the underlying buffered encoder
         self._write_to_oggopus(memoryview(bytearray(b"")), flush=True)
-
-        # The current packet must be the end of the stream, update
-        # the packet's details
-        self._ogg_packet.e_o_s = 1
-
-        # Write the packet to the stream
-        if self._packet_valid:
-            self._write_packet()
 
         # Flush the stream of any unwritten pages
         self._flush()
