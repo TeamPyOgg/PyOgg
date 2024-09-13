@@ -42,6 +42,10 @@ PyOgg using this command::
 
   brew install libogg opus opusfile libopusenc libvorbis flac
 
+If using Apple Silicon, you may have to set DYLD_LIBRARY_PATH::
+
+  export DYLD_LIBRARY_PATH=/opt/homebrew/lib
+  
 Depending on how you wish to use PyOgg, many of these libraries may be
 optional.
 
