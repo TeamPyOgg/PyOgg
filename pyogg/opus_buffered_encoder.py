@@ -107,12 +107,16 @@ class OpusBufferedEncoder(OpusEncoder):
             )
             pcm_ctypes = Buffer.from_buffer(pcm_bytes)
             
+        samples_multiplier = 48000 // self._samples_per_second
         # Either store the encoded packet to return at the end of the
         # method or immediately call the callback with the encoded
         # packet.
         def store_or_callback(encoded_packet: memoryview,
                               samples: int,
                               end_of_stream: bool = False) -> None:
+            # As far as the audio is decoded in 48kHz, the position in a stream should be stored
+            # according to this rate, not the original one
+            samples *= samples_multiplier
             if callback is None:
                 # Store the result
                 results.append((
