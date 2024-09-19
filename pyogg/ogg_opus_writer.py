@@ -4,6 +4,7 @@ import ctypes
 import random
 import struct
 from typing import (
+    List,
     Optional,
     Union,
     BinaryIO
@@ -11,6 +12,7 @@ from typing import (
 
 from . import ogg
 from . import opus
+from . import __version__
 from .opus_buffered_encoder import OpusBufferedEncoder
 #from .opus_encoder import OpusEncoder
 from .pyogg_error import PyOggError
@@ -54,6 +56,9 @@ class OggOpusWriter():
 
         # Create a new stream state with a random serial number
         self._stream_state = self._create_stream_state()
+
+        # Do not add any user comments to the generated stream
+        self._user_comments: List[str] = []
 
         # Create a packet (reused for each pass)
         self._ogg_packet = ogg.ogg_packet()
@@ -120,6 +125,22 @@ class OggOpusWriter():
 
         # Call the internal method to encode the bytes
         self._write_to_oggopus(pcm)
+
+
+    def add_user_comment(self, comment: str) -> None:
+        """Appends an user comment string to the generated Ogg Opus stream.
+
+        Because such user comments are stored in Ogg Opus stream headers, calling
+        this method after they have been written (i.e., a call to the `write()`
+        method has been made) will have no effect. No user comments are written
+        by default.
+
+        Comment strings are meant to be short, for the purposes of stream
+        identification only, in the `KEY=VALUE` format. The headers format provides
+        some leeway to allow longer and differently formatted comments, however.
+        For more information and a list of conventional comment string key values,
+        please check out <https://www.xiph.org/vorbis/doc/v-comment.html>."""
+        self._user_comments.append(comment)
 
 
     def _write_to_oggopus(self, pcm: memoryview, flush: bool = False) -> None:
@@ -318,15 +339,22 @@ class OggOpusWriter():
 
         """
         signature = b"OpusTags"
-        vendor_string = b"ENCODER=PyOgg"
+        vendor_string = f"PyOgg {__version__}".encode("utf-8")
         vendor_string_length = struct.pack("<I",len(vendor_string))
-        user_comments_length = struct.pack("<I",0)
+        user_comments_length = struct.pack("<I",len(self._user_comments))
+
+        user_comments = bytearray()
+        for user_comment in self._user_comments:
+            comment_string = user_comment.encode("utf-8")
+            user_comments += struct.pack("<I",len(comment_string))
+            user_comments += comment_string
 
         return (
             signature
             + vendor_string_length
             + vendor_string
             + user_comments_length
+            + user_comments
         )
 
     def _write_comment_header_packet(self):
