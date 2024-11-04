@@ -115,4 +115,31 @@ def test_same_data_as_opus_file_using_as_array(pyogg_config: Config):
 
     # Check that every byte is identical for both buffers
     assert numpy.all(buf_all == opus_file.as_array())
-    
+
+
+def test_from_memory(pyogg_config: Config) -> None:
+    # Load the demonstration file that is exactly 5 seconds long
+    filename = str(
+        pyogg_config.rootdir
+        / "examples/left-right-demo-5s.opus"
+    )
+
+    # Load the file into memory, then into OpusFileStream.
+    with open(filename, "rb") as f:
+        from_memory = pyogg.OpusFileStream(f.read())
+    # For comparison, load directly with OpusFile.
+    from_file = pyogg.OpusFileStream(filename)
+
+    # Loop through the OpusFileStreams until we've read all the data
+    while True:
+        # Read the next part of the stream
+        from_memory_buf = from_memory.get_buffer()
+        from_file_buf = from_file.get_buffer()
+
+        # Check if we've reached the end of the stream
+        if from_memory_buf is None or from_file_buf is None:
+            break
+        # Check that every byte is identical for both buffers
+        assert bytes(from_memory_buf) == bytes(from_file_buf)
+    # Check that we've reached the end of both streams
+    assert from_memory_buf is None and from_file_buf is None

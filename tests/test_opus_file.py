@@ -1,6 +1,5 @@
 import pytest
 import pyogg
-import os
 
 from config import Config
 
@@ -86,3 +85,17 @@ def test_output_via_wav(pyogg_config: Config) -> None:
     wave_out.setsampwidth(opus_file.bytes_per_sample)
     wave_out.setframerate(opus_file.frequency)
     wave_out.writeframes(opus_file.buffer)
+
+
+def test_from_memory(pyogg_config: Config) -> None:
+    # Load the demonstration file that is exactly 5 seconds long
+    filename = str(
+        pyogg_config.rootdir
+        / "examples/left-right-demo-5s.opus"
+    )
+    # Load the file into memory, then into OpusFile.
+    with open(filename, "rb") as f:
+        from_memory = pyogg.OpusFile(f.read())
+    # For comparison, load the file directly with OpusFile.
+    from_file = pyogg.OpusFile(filename)
+    assert bytes(from_memory.buffer) == bytes(from_file.buffer)
