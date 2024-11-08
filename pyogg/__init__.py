@@ -106,3 +106,6 @@ else:
     class FlacFileStream: # type: ignore
         def __init__(*args, **kw):
             raise PyOggError("The FLAC libraries weren't found or couldn't be loaded (maybe you're trying to use 64bit libraries with 32bit Python?)")
+
+
+from .ogg_opus_wrapper import OggOpusWrapper
